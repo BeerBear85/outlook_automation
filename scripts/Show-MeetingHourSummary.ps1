@@ -84,6 +84,44 @@ function Test-ShouldIgnoreAppointment {
     return $false
 }
 
+function Load-EmailTemplate {
+    <#
+    .SYNOPSIS
+        Loads email template from meeting_change_request_template.txt file.
+    .OUTPUTS
+        String containing the template text.
+    #>
+    param (
+        [string]$ScriptDir
+    )
+
+    $templateFile = Join-Path $ScriptDir "meeting_change_request_template.txt"
+
+    if (Test-Path $templateFile) {
+        return Get-Content $templateFile -Raw
+    } else {
+        # Return a default template if file doesn't exist
+        return @"
+Subject: Request to shift meeting start time to :05
+
+Dear {ORGANIZER},
+
+I hope this message finds you well. I'm reaching out regarding our upcoming meeting:
+
+Meeting: {SUBJECT}
+Current Start Time: {START_TIME}
+
+Would it be possible to shift the meeting start time by 5 minutes to {NEW_START_TIME}? This small adjustment would help create a buffer between back-to-back meetings and allow for better preparation time.
+
+If this change works for you and other attendees, I would greatly appreciate it. If the current time is critical, please feel free to keep it as scheduled.
+
+Thank you for considering this request.
+
+Best regards
+"@
+    }
+}
+
 function Get-WeekdayBounds {
     <#
     .SYNOPSIS
@@ -131,6 +169,203 @@ function Get-AppointmentDuration {
 
     $duration = $End - $Start
     return [Math]::Round($duration.TotalHours, 2)
+}
+
+function Get-FullHourMeetings {
+    <#
+    .SYNOPSIS
+        Finds meetings starting exactly on the full hour in the next 14 days.
+        Excludes all-day events, private items, and Out of Office entries.
+        Returns at most 10 meetings, starting with the earliest.
+    #>
+    param (
+        [Object]$Items,
+        [DateTime]$StartDate,
+        [DateTime]$EndDate,
+        [string[]]$IgnorePatterns,
+        [int]$MaxCount = 10
+    )
+
+    $fullHourMeetings = @()
+    $now = Get-Date
+
+    foreach ($item in $Items) {
+        if ($item -is [Microsoft.Office.Interop.Outlook.AppointmentItem]) {
+            $appointmentStart = $item.Start
+
+            # Check if appointment is in the next 14 days
+            if ($appointmentStart -ge $StartDate -and $appointmentStart -lt $EndDate) {
+                # Skip if matches ignore pattern
+                if (Test-ShouldIgnoreAppointment -Subject $item.Subject -IgnorePatterns $IgnorePatterns) {
+                    continue
+                }
+
+                # Skip all-day events
+                if ($item.AllDayEvent) {
+                    continue
+                }
+
+                # Skip private items
+                if ($item.Sensitivity -eq [Microsoft.Office.Interop.Outlook.OlSensitivity]::olPrivate) {
+                    continue
+                }
+
+                # Skip Out of Office (BusyStatus = olOutOfOffice)
+                if ($item.BusyStatus -eq [Microsoft.Office.Interop.Outlook.OlBusyStatus]::olOutOfOffice) {
+                    continue
+                }
+
+                # Skip meetings that have already started
+                if ($appointmentStart -lt $now) {
+                    continue
+                }
+
+                # Check if start time is exactly on the hour (minute = 0, second = 0)
+                if ($appointmentStart.Minute -eq 0 -and $appointmentStart.Second -eq 0) {
+                    $fullHourMeetings += $item
+                }
+            }
+        }
+    }
+
+    # Sort by start time and take the first $MaxCount
+    $fullHourMeetings = $fullHourMeetings | Sort-Object Start | Select-Object -First $MaxCount
+
+    return $fullHourMeetings
+}
+
+function Show-MeetingRescheduleDialog {
+    <#
+    .SYNOPSIS
+        Shows a popup dialog asking if user wants to draft a reschedule email.
+    .OUTPUTS
+        Boolean indicating if user confirmed (True) or declined (False).
+    #>
+    param (
+        [string]$Subject,
+        [DateTime]$StartTime,
+        [string]$Organizer
+    )
+
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+
+    # Create form
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "Reschedule Meeting?"
+    $form.Size = New-Object System.Drawing.Size(500, 280)
+    $form.StartPosition = "CenterScreen"
+    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
+    $form.TopMost = $true
+
+    # Title label
+    $titleLabel = New-Object System.Windows.Forms.Label
+    $titleLabel.Location = New-Object System.Drawing.Point(20, 20)
+    $titleLabel.Size = New-Object System.Drawing.Size(460, 25)
+    $titleLabel.Text = "Meeting starts at full hour"
+    $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+    $form.Controls.Add($titleLabel)
+
+    # Message label
+    $messageLabel = New-Object System.Windows.Forms.Label
+    $messageLabel.Location = New-Object System.Drawing.Point(20, 55)
+    $messageLabel.Size = New-Object System.Drawing.Size(460, 60)
+    $messageLabel.Text = "The following meeting starts exactly on the hour. Would you like to draft an email requesting it be moved to :05?"
+    $messageLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $form.Controls.Add($messageLabel)
+
+    # Details label
+    $detailsLabel = New-Object System.Windows.Forms.Label
+    $detailsLabel.Location = New-Object System.Drawing.Point(20, 120)
+    $detailsLabel.Size = New-Object System.Drawing.Size(460, 80)
+    $detailsLabel.Text = "Subject: $Subject`r`nStart Time: $($StartTime.ToString('dddd, MMMM dd, yyyy HH:mm'))`r`nOrganizer: $Organizer"
+    $detailsLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $detailsLabel.ForeColor = [System.Drawing.Color]::DarkBlue
+    $form.Controls.Add($detailsLabel)
+
+    # Yes button
+    $yesButton = New-Object System.Windows.Forms.Button
+    $yesButton.Location = New-Object System.Drawing.Point(150, 210)
+    $yesButton.Size = New-Object System.Drawing.Size(90, 30)
+    $yesButton.Text = "Yes"
+    $yesButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $yesButton.DialogResult = [System.Windows.Forms.DialogResult]::Yes
+    $form.Controls.Add($yesButton)
+
+    # No button
+    $noButton = New-Object System.Windows.Forms.Button
+    $noButton.Location = New-Object System.Drawing.Point(260, 210)
+    $noButton.Size = New-Object System.Drawing.Size(90, 30)
+    $noButton.Text = "No"
+    $noButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $noButton.DialogResult = [System.Windows.Forms.DialogResult]::No
+    $form.Controls.Add($noButton)
+
+    $form.AcceptButton = $yesButton
+    $form.CancelButton = $noButton
+
+    # Show the form and return result
+    $result = $form.ShowDialog()
+    return ($result -eq [System.Windows.Forms.DialogResult]::Yes)
+}
+
+function New-RescheduleDraftEmail {
+    <#
+    .SYNOPSIS
+        Creates a draft email in Outlook requesting meeting reschedule.
+    #>
+    param (
+        [Object]$Outlook,
+        [Object]$AppointmentItem,
+        [string]$Template
+    )
+
+    try {
+        # Get organizer email address
+        $organizerEmail = $AppointmentItem.Organizer
+        if ($AppointmentItem.GetOrganizer()) {
+            $organizerRecipient = $AppointmentItem.GetOrganizer()
+            $organizerEmail = $organizerRecipient.Address
+        }
+
+        # Get organizer name
+        $organizerName = $AppointmentItem.Organizer
+
+        # Calculate new start time (add 5 minutes)
+        $currentStart = $AppointmentItem.Start
+        $newStart = $currentStart.AddMinutes(5)
+
+        # Replace placeholders in template
+        $emailContent = $Template -replace '\{ORGANIZER\}', $organizerName `
+                                   -replace '\{SUBJECT\}', $AppointmentItem.Subject `
+                                   -replace '\{START_TIME\}', $currentStart.ToString('dddd, MMMM dd, yyyy HH:mm') `
+                                   -replace '\{NEW_START_TIME\}', $newStart.ToString('HH:mm')
+
+        # Extract subject line from template (first line after "Subject:")
+        $subjectLine = "Request to shift meeting start time to :05"
+        if ($emailContent -match 'Subject:\s*(.+)') {
+            $subjectLine = $matches[1].Trim()
+            # Remove the subject line from the body
+            $emailContent = $emailContent -replace 'Subject:\s*.+\r?\n\r?\n?', ''
+        }
+
+        # Create draft email
+        $mail = $Outlook.CreateItem([Microsoft.Office.Interop.Outlook.OlItemType]::olMailItem)
+        $mail.To = $organizerEmail
+        $mail.Subject = $subjectLine
+        $mail.Body = $emailContent.Trim()
+
+        # Save as draft (do not send)
+        $mail.Save()
+
+        return $true
+    }
+    catch {
+        Write-Error "Failed to create draft email: $_"
+        return $false
+    }
 }
 
 function Get-MeetingHours {
@@ -227,9 +462,10 @@ $thisWeekBounds = Get-WeekdayBounds -ReferenceDate $now
 $nextWeekMonday = $thisWeekBounds.Monday.AddDays(7)
 $nextWeekBounds = Get-WeekdayBounds -ReferenceDate $nextWeekMonday
 
-# Fetch calendar items (from today to end of next week)
+# Fetch calendar items (from today to end of next week or 14 days, whichever is later)
 $fetchStartDate = $today
-$fetchEndDate = $nextWeekBounds.Friday
+$fourteenDaysLater = $today.AddDays(14)
+$fetchEndDate = if ($nextWeekBounds.Friday -gt $fourteenDaysLater) { $nextWeekBounds.Friday } else { $fourteenDaysLater }
 $filter = "[Start] >= '" + $fetchStartDate.ToString("g") + "' AND [Start] < '" + $fetchEndDate.AddDays(1).ToString("g") + "'"
 
 try {
@@ -250,6 +486,45 @@ $todayHours = Get-MeetingHours -Items $items -StartDate $today -EndDate $tomorro
 $tomorrowHours = Get-MeetingHours -Items $items -StartDate $tomorrow -EndDate $dayAfterTomorrow -IgnorePatterns $ignorePatterns
 $thisWeekHours = Get-MeetingHours -Items $items -StartDate $thisWeekBounds.Monday -EndDate $thisWeekBounds.Friday -IgnorePatterns $ignorePatterns
 $nextWeekHours = Get-MeetingHours -Items $items -StartDate $nextWeekBounds.Monday -EndDate $nextWeekBounds.Friday -IgnorePatterns $ignorePatterns
+
+# -----------------------------------------------------------------------------
+# Process Full-Hour Meetings for Rescheduling
+# -----------------------------------------------------------------------------
+
+# Load email template
+$emailTemplate = Load-EmailTemplate -ScriptDir $scriptDir
+
+# Find full-hour meetings in the next 14 days
+$fullHourMeetings = Get-FullHourMeetings -Items $items -StartDate $now -EndDate $fourteenDaysLater -IgnorePatterns $ignorePatterns -MaxCount 10
+
+# Process each full-hour meeting
+foreach ($meeting in $fullHourMeetings) {
+    # Show confirmation dialog
+    $shouldCreateDraft = Show-MeetingRescheduleDialog -Subject $meeting.Subject -StartTime $meeting.Start -Organizer $meeting.Organizer
+
+    if ($shouldCreateDraft) {
+        # Create draft email
+        $success = New-RescheduleDraftEmail -Outlook $outlook -AppointmentItem $meeting -Template $emailTemplate
+
+        if ($success) {
+            Add-Type -AssemblyName System.Windows.Forms
+            [System.Windows.Forms.MessageBox]::Show(
+                "Draft email created successfully and saved to your Drafts folder.",
+                "Draft Created",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Information
+            ) | Out-Null
+        } else {
+            Add-Type -AssemblyName System.Windows.Forms
+            [System.Windows.Forms.MessageBox]::Show(
+                "Failed to create draft email. Please check the error message.",
+                "Error",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Error
+            ) | Out-Null
+        }
+    }
+}
 
 # -----------------------------------------------------------------------------
 # Build Windows Forms Popup

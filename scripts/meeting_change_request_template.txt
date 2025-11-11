@@ -1,0 +1,16 @@
+Subject: Request to shift meeting start time to :05
+
+Dear {ORGANIZER},
+
+I hope this message finds you well. I'm reaching out regarding our upcoming meeting:
+
+Meeting: {SUBJECT}
+Current Start Time: {START_TIME}
+
+Would it be possible to shift the meeting start time by 5 minutes to {NEW_START_TIME}? This small adjustment would help create a buffer between back-to-back meetings and allow for better preparation time.
+
+If this change works for you and other attendees, I would greatly appreciate it. If the current time is critical, please feel free to keep it as scheduled.
+
+Thank you for considering this request.
+
+Best regards
