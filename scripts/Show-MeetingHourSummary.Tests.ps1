@@ -81,7 +81,85 @@ function Get-WeekdayBounds {
         }
 
         return $patterns
-}
+    }
+
+    function Load-EmailTemplate {
+        param (
+            [string]$ScriptDir
+        )
+
+        $templateFile = Join-Path $ScriptDir "meeting_change_request_template.txt"
+
+        if (Test-Path $templateFile) {
+            return Get-Content $templateFile -Raw
+        } else {
+            return @"
+Subject: Request to shift meeting start time to :05
+
+Dear {ORGANIZER},
+
+I hope this message finds you well. I'm reaching out regarding our upcoming meeting:
+
+Meeting: {SUBJECT}
+Current Start Time: {START_TIME}
+
+Would it be possible to shift the meeting start time by 5 minutes to {NEW_START_TIME}? This small adjustment would help create a buffer between back-to-back meetings and allow for better preparation time.
+
+If this change works for you and other attendees, I would greatly appreciate it. If the current time is critical, please feel free to keep it as scheduled.
+
+Thank you for considering this request.
+
+Best regards
+"@
+        }
+    }
+
+    function Get-FullHourMeetings {
+        param (
+            [Object]$Items,
+            [DateTime]$StartDate,
+            [DateTime]$EndDate,
+            [string[]]$IgnorePatterns,
+            [int]$MaxCount = 10
+        )
+
+        $fullHourMeetings = @()
+        $now = Get-Date
+
+        foreach ($item in $Items) {
+            $appointmentStart = $item.Start
+
+            if ($appointmentStart -ge $StartDate -and $appointmentStart -lt $EndDate) {
+                if (Test-ShouldIgnoreAppointment -Subject $item.Subject -IgnorePatterns $IgnorePatterns) {
+                    continue
+                }
+
+                if ($item.AllDayEvent) {
+                    continue
+                }
+
+                if ($item.Sensitivity -eq 2) {  # olPrivate
+                    continue
+                }
+
+                if ($item.BusyStatus -eq 3) {  # olOutOfOffice
+                    continue
+                }
+
+                if ($appointmentStart -lt $now) {
+                    continue
+                }
+
+                if ($appointmentStart.Minute -eq 0 -and $appointmentStart.Second -eq 0) {
+                    $fullHourMeetings += $item
+                }
+            }
+        }
+
+        $fullHourMeetings = $fullHourMeetings | Sort-Object Start | Select-Object -First $MaxCount
+
+        return $fullHourMeetings
+    }
 
 # Create a temporary directory for tests that need it
 $script:tempDir = Join-Path $env:TEMP "MeetingHourSummaryTests_$([Guid]::NewGuid().ToString())"
@@ -475,6 +553,282 @@ Describe "Integration Scenarios" {
             } | Measure-Object -Sum).Sum
 
             $total | Should Be 3.0
+        }
+    }
+}
+
+Describe "Load-EmailTemplate" {
+    Context "When loading email template" {
+        It "Should load template from file if it exists" {
+            $testFile = Join-Path $script:tempDir "meeting_change_request_template.txt"
+            $customTemplate = "Custom template with {ORGANIZER} and {SUBJECT}"
+            $customTemplate | Out-File -FilePath $testFile -Encoding utf8 -NoNewline
+
+            $result = Load-EmailTemplate -ScriptDir $script:tempDir
+
+            $result | Should Be $customTemplate
+        }
+
+        It "Should return default template if file doesn't exist" {
+            $nonExistentDir = Join-Path $env:TEMP "NonExistent_$([Guid]::NewGuid().ToString())"
+
+            $result = Load-EmailTemplate -ScriptDir $nonExistentDir
+
+            $result | Should Match "Subject: Request to shift meeting start time"
+            $result | Should Match "\{ORGANIZER\}"
+            $result | Should Match "\{SUBJECT\}"
+            $result | Should Match "\{START_TIME\}"
+            $result | Should Match "\{NEW_START_TIME\}"
+        }
+
+        It "Should preserve template placeholders" {
+            $result = Load-EmailTemplate -ScriptDir "NonExistentPath"
+
+            $result | Should Match "\{ORGANIZER\}"
+            $result | Should Match "\{SUBJECT\}"
+            $result | Should Match "\{START_TIME\}"
+            $result | Should Match "\{NEW_START_TIME\}"
+        }
+
+        It "Should handle multi-line templates" {
+            $testFile = Join-Path $script:tempDir "meeting_change_request_template.txt"
+            $multilineTemplate = @"
+Line 1
+Line 2
+Line 3
+"@
+            $multilineTemplate | Out-File -FilePath $testFile -Encoding utf8
+
+            $result = Load-EmailTemplate -ScriptDir $script:tempDir
+
+            $result | Should Match "Line 1"
+            $result | Should Match "Line 2"
+            $result | Should Match "Line 3"
+        }
+    }
+}
+
+Describe "Get-FullHourMeetings" {
+    Context "When filtering meetings" {
+        It "Should return meetings starting exactly on the hour" {
+            $tomorrow = (Get-Date).Date.AddDays(1)
+            $meetings = @(
+                [PSCustomObject]@{
+                    Subject = "Team Meeting"
+                    Start = $tomorrow.AddHours(10)  # 10:00
+                    AllDayEvent = $false
+                    Sensitivity = 0  # olNormal
+                    BusyStatus = 2  # olBusy
+                },
+                [PSCustomObject]@{
+                    Subject = "Client Call"
+                    Start = $tomorrow.AddHours(14).AddMinutes(30)  # 14:30
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                }
+            )
+
+            $startDate = Get-Date
+            $endDate = $startDate.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns @()
+
+            $result.Count | Should Be 1
+            $result[0].Subject | Should Be "Team Meeting"
+        }
+
+        It "Should exclude all-day events" {
+            $tomorrow = (Get-Date).Date.AddDays(1)
+            $meetings = @(
+                [PSCustomObject]@{
+                    Subject = "All Day Event"
+                    Start = $tomorrow.AddHours(10)
+                    AllDayEvent = $true
+                    Sensitivity = 0
+                    BusyStatus = 2
+                }
+            )
+
+            $startDate = Get-Date
+            $endDate = $startDate.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns @()
+
+            $result.Count | Should Be 0
+        }
+
+        It "Should exclude private meetings" {
+            $tomorrow = (Get-Date).Date.AddDays(1)
+            $meetings = @(
+                [PSCustomObject]@{
+                    Subject = "Private Meeting"
+                    Start = $tomorrow.AddHours(10)
+                    AllDayEvent = $false
+                    Sensitivity = 2  # olPrivate
+                    BusyStatus = 2
+                }
+            )
+
+            $startDate = Get-Date
+            $endDate = $startDate.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns @()
+
+            $result.Count | Should Be 0
+        }
+
+        It "Should exclude Out of Office" {
+            $tomorrow = (Get-Date).Date.AddDays(1)
+            $meetings = @(
+                [PSCustomObject]@{
+                    Subject = "OOO"
+                    Start = $tomorrow.AddHours(10)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 3  # olOutOfOffice
+                }
+            )
+
+            $startDate = Get-Date
+            $endDate = $startDate.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns @()
+
+            $result.Count | Should Be 0
+        }
+
+        It "Should respect ignore patterns" {
+            $tomorrow = (Get-Date).Date.AddDays(1)
+            $meetings = @(
+                [PSCustomObject]@{
+                    Subject = "Lunch Meeting"
+                    Start = $tomorrow.AddHours(12)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                }
+            )
+
+            $patterns = @("^Lunch.*")
+            $startDate = Get-Date
+            $endDate = $startDate.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns $patterns
+
+            $result.Count | Should Be 0
+        }
+
+        It "Should limit results to MaxCount" {
+            $tomorrow = (Get-Date).Date.AddDays(1)
+            $meetings = @()
+            for ($i = 0; $i -lt 15; $i++) {
+                $meetings += [PSCustomObject]@{
+                    Subject = "Meeting $i"
+                    Start = $tomorrow.AddHours($i)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                }
+            }
+
+            $startDate = Get-Date
+            $endDate = $startDate.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns @() -MaxCount 5
+
+            $result.Count | Should Be 5
+        }
+
+        It "Should sort by earliest start time" {
+            $tomorrow = (Get-Date).Date.AddDays(1)
+            $meetings = @(
+                [PSCustomObject]@{
+                    Subject = "Meeting C"
+                    Start = $tomorrow.AddHours(15)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                },
+                [PSCustomObject]@{
+                    Subject = "Meeting A"
+                    Start = $tomorrow.AddHours(9)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                },
+                [PSCustomObject]@{
+                    Subject = "Meeting B"
+                    Start = $tomorrow.AddHours(11)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                }
+            )
+
+            $startDate = Get-Date
+            $endDate = $startDate.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns @()
+
+            $result.Count | Should Be 3
+            $result[0].Subject | Should Be "Meeting A"
+            $result[1].Subject | Should Be "Meeting B"
+            $result[2].Subject | Should Be "Meeting C"
+        }
+
+        It "Should exclude meetings with non-zero minutes" {
+            $tomorrow = (Get-Date).Date.AddDays(1)
+            $meetings = @(
+                [PSCustomObject]@{
+                    Subject = "Meeting at :15"
+                    Start = $tomorrow.AddHours(10).AddMinutes(15)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                },
+                [PSCustomObject]@{
+                    Subject = "Meeting at :00"
+                    Start = $tomorrow.AddHours(10)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                }
+            )
+
+            $startDate = Get-Date
+            $endDate = $startDate.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns @()
+
+            $result.Count | Should Be 1
+            $result[0].Subject | Should Be "Meeting at :00"
+        }
+
+        It "Should only include meetings within date range" {
+            $today = Get-Date
+            $meetings = @(
+                [PSCustomObject]@{
+                    Subject = "Past Meeting"
+                    Start = $today.AddDays(-1).AddHours(10)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                },
+                [PSCustomObject]@{
+                    Subject = "Future Meeting in range"
+                    Start = $today.AddDays(5).AddHours(10)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                },
+                [PSCustomObject]@{
+                    Subject = "Future Meeting out of range"
+                    Start = $today.AddDays(20).AddHours(10)
+                    AllDayEvent = $false
+                    Sensitivity = 0
+                    BusyStatus = 2
+                }
+            )
+
+            $startDate = $today
+            $endDate = $today.AddDays(14)
+            $result = Get-FullHourMeetings -Items $meetings -StartDate $startDate -EndDate $endDate -IgnorePatterns @()
+
+            $result.Count | Should Be 1
+            $result[0].Subject | Should Be "Future Meeting in range"
         }
     }
 }
