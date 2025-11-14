@@ -157,6 +157,32 @@ function Get-WeekdayBounds {
     }
 }
 
+function Get-NextWorkingDay {
+    <#
+    .SYNOPSIS
+        Gets the next working day (Monday-Friday) from a given reference date.
+        Skips weekends.
+    #>
+    param (
+        [DateTime]$ReferenceDate
+    )
+
+    $nextDay = $ReferenceDate.Date.AddDays(1)
+
+    # If next day is Saturday (6), move to Monday (+2 days)
+    if ($nextDay.DayOfWeek -eq [DayOfWeek]::Saturday) {
+        return $nextDay.AddDays(2)
+    }
+    # If next day is Sunday (0), move to Monday (+1 day)
+    elseif ($nextDay.DayOfWeek -eq [DayOfWeek]::Sunday) {
+        return $nextDay.AddDays(1)
+    }
+    # Otherwise, next day is already a working day
+    else {
+        return $nextDay
+    }
+}
+
 function Get-AppointmentDuration {
     <#
     .SYNOPSIS
@@ -183,46 +209,92 @@ function Get-FullHourMeetings {
         [DateTime]$StartDate,
         [DateTime]$EndDate,
         [string[]]$IgnorePatterns,
-        [int]$MaxCount = 10
+        [int]$MaxCount = 10,
+        [string]$LogFile = $null
     )
+
+    if ($LogFile) {
+        Write-Log -LogFile $LogFile -Message "Scanning for full-hour meetings (starting at :00) in the next 14 days"
+    }
 
     $fullHourMeetings = @()
     $now = Get-Date
+    $skippedReasons = @{
+        'Ignored' = 0
+        'AllDay' = 0
+        'Private' = 0
+        'OutOfOffice' = 0
+        'AlreadyStarted' = 0
+        'NotFullHour' = 0
+        'Cancelled' = 0
+        'Declined' = 0
+    }
 
     foreach ($item in $Items) {
-        if ($item -is [Microsoft.Office.Interop.Outlook.AppointmentItem]) {
+        # Allow both real Outlook AppointmentItems and test mock objects (PSCustomObject)
+        if ($item -is [Microsoft.Office.Interop.Outlook.AppointmentItem] -or $item -is [PSCustomObject]) {
             $appointmentStart = $item.Start
 
             # Check if appointment is in the next 14 days
             if ($appointmentStart -ge $StartDate -and $appointmentStart -lt $EndDate) {
                 # Skip if matches ignore pattern
                 if (Test-ShouldIgnoreAppointment -Subject $item.Subject -IgnorePatterns $IgnorePatterns) {
+                    $skippedReasons['Ignored']++
                     continue
                 }
 
                 # Skip all-day events
                 if ($item.AllDayEvent) {
+                    $skippedReasons['AllDay']++
                     continue
                 }
 
                 # Skip private items
                 if ($item.Sensitivity -eq [Microsoft.Office.Interop.Outlook.OlSensitivity]::olPrivate) {
+                    $skippedReasons['Private']++
                     continue
                 }
 
                 # Skip Out of Office (BusyStatus = olOutOfOffice)
                 if ($item.BusyStatus -eq [Microsoft.Office.Interop.Outlook.OlBusyStatus]::olOutOfOffice) {
+                    $skippedReasons['OutOfOffice']++
                     continue
                 }
 
                 # Skip meetings that have already started
                 if ($appointmentStart -lt $now) {
+                    $skippedReasons['AlreadyStarted']++
                     continue
+                }
+
+                # Skip cancelled meetings (safe property check for both COM objects and test mocks)
+                try {
+                    if ($item.MeetingStatus -eq [Microsoft.Office.Interop.Outlook.OlMeetingStatus]::olMeetingCanceled) {
+                        $skippedReasons['Cancelled']++
+                        continue
+                    }
+                } catch {
+                    # Property doesn't exist (test mock), continue processing
+                }
+
+                # Skip declined meetings (safe property check for both COM objects and test mocks)
+                try {
+                    if ($item.ResponseStatus -eq [Microsoft.Office.Interop.Outlook.OlResponseStatus]::olResponseDeclined) {
+                        $skippedReasons['Declined']++
+                        continue
+                    }
+                } catch {
+                    # Property doesn't exist (test mock), continue processing
                 }
 
                 # Check if start time is exactly on the hour (minute = 0, second = 0)
                 if ($appointmentStart.Minute -eq 0 -and $appointmentStart.Second -eq 0) {
                     $fullHourMeetings += $item
+                    if ($LogFile) {
+                        Write-Log -LogFile $LogFile -Message "  Found full-hour meeting: '$($item.Subject)' | Start: $($appointmentStart.ToString('yyyy-MM-dd HH:mm')) | Organizer: $($item.Organizer)"
+                    }
+                } else {
+                    $skippedReasons['NotFullHour']++
                 }
             }
         }
@@ -230,6 +302,12 @@ function Get-FullHourMeetings {
 
     # Sort by start time and take the first $MaxCount
     $fullHourMeetings = $fullHourMeetings | Sort-Object Start | Select-Object -First $MaxCount
+
+    if ($LogFile) {
+        Write-Log -LogFile $LogFile -Message "Full-hour meeting scan complete: Found $($fullHourMeetings.Count) meetings"
+        Write-Log -LogFile $LogFile -Message "  Skipped: $($skippedReasons['Ignored']) (ignored pattern), $($skippedReasons['AllDay']) (all-day), $($skippedReasons['Private']) (private), $($skippedReasons['OutOfOffice']) (OOO), $($skippedReasons['AlreadyStarted']) (already started), $($skippedReasons['Cancelled']) (cancelled), $($skippedReasons['Declined']) (declined)"
+        Write-Log -LogFile $LogFile -Message ""
+    }
 
     return $fullHourMeetings
 }
@@ -368,6 +446,55 @@ function New-RescheduleDraftEmail {
     }
 }
 
+function Initialize-LogFile {
+    <#
+    .SYNOPSIS
+        Creates or clears the log file and writes a header.
+    #>
+    param (
+        [string]$ScriptDir
+    )
+
+    $logFile = Join-Path $ScriptDir "log.txt"
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+    $header = @"
+================================================================================
+Meeting Hour Summary Script Log
+Generated: $timestamp
+================================================================================
+
+"@
+
+    $header | Out-File -FilePath $logFile -Encoding utf8
+    return $logFile
+}
+
+function Write-Log {
+    <#
+    .SYNOPSIS
+        Writes a message to the log file with error handling and console fallback.
+    #>
+    param (
+        [string]$LogFile,
+        [string]$Message,
+        [string]$Level = "INFO"
+    )
+
+    $timestamp = Get-Date -Format "HH:mm:ss"
+    $logEntry = "[$timestamp] [$Level] $Message"
+
+    try {
+        # Try to write to log file
+        $logEntry | Out-File -FilePath $LogFile -Append -Encoding utf8 -ErrorAction Stop
+    }
+    catch {
+        # If file logging fails, write to console as fallback
+        Write-Host "[LOG ERROR] Failed to write to log file: $_" -ForegroundColor Yellow
+        Write-Host $logEntry -ForegroundColor Cyan
+    }
+}
+
 function Get-MeetingHours {
     <#
     .SYNOPSIS
@@ -377,34 +504,106 @@ function Get-MeetingHours {
         [Object]$Items,
         [DateTime]$StartDate,
         [DateTime]$EndDate,
-        [string[]]$IgnorePatterns
+        [string[]]$IgnorePatterns,
+        [string]$LogFile = $null,
+        [string]$PeriodName = ""
     )
+
+    if ($LogFile) {
+        Write-Log -LogFile $LogFile -Message "Processing period: $PeriodName ($($StartDate.ToString('yyyy-MM-dd')) to $($EndDate.ToString('yyyy-MM-dd')))"
+    }
 
     $totalHours = 0
     $appointmentCount = 0
+    $ignoredCount = 0
+    $allDayCount = 0
 
     foreach ($item in $Items) {
-        if ($item -is [Microsoft.Office.Interop.Outlook.AppointmentItem]) {
+        # Allow both real Outlook AppointmentItems and test mock objects (PSCustomObject)
+        if ($item -is [Microsoft.Office.Interop.Outlook.AppointmentItem] -or $item -is [PSCustomObject]) {
             $appointmentStart = $item.Start
             $appointmentEnd = $item.End
 
             # Check if appointment falls within the time period
             if ($appointmentStart -ge $StartDate -and $appointmentStart -lt $EndDate) {
+                $duration = Get-AppointmentDuration -Start $appointmentStart -End $appointmentEnd
+
+                if ($LogFile) {
+                    Write-Log -LogFile $LogFile -Message "  Found appointment: '$($item.Subject)' | Start: $($appointmentStart.ToString('yyyy-MM-dd HH:mm')) | Duration: $duration hours"
+
+                    # Log detailed properties for debugging
+                    try {
+                        $meetingStatus = if ($item.MeetingStatus) { $item.MeetingStatus } else { "N/A" }
+                        $responseStatus = if ($item.ResponseStatus) { $item.ResponseStatus } else { "N/A" }
+                        $isAllDay = $item.AllDayEvent
+                        Write-Log -LogFile $LogFile -Message "    Properties: MeetingStatus=$meetingStatus, ResponseStatus=$responseStatus, AllDayEvent=$isAllDay"
+                    }
+                    catch {
+                        Write-Log -LogFile $LogFile -Message "    [Could not read some properties]"
+                    }
+                }
+
                 # Skip if matches ignore pattern
                 if (Test-ShouldIgnoreAppointment -Subject $item.Subject -IgnorePatterns $IgnorePatterns) {
+                    if ($LogFile) {
+                        Write-Log -LogFile $LogFile -Message "    -> EXCLUDED: Matches ignore pattern" -Level "SKIP"
+                    }
+                    $ignoredCount++
                     continue
                 }
 
                 # Skip all-day events (typically not meetings)
                 if ($item.AllDayEvent) {
+                    if ($LogFile) {
+                        Write-Log -LogFile $LogFile -Message "    -> EXCLUDED: All-day event" -Level "SKIP"
+                    }
+                    $allDayCount++
                     continue
                 }
 
-                $hours = Get-AppointmentDuration -Start $appointmentStart -End $appointmentEnd
+                # Skip cancelled meetings (safe property check for both COM objects and test mocks)
+                try {
+                    if ($item.MeetingStatus -eq [Microsoft.Office.Interop.Outlook.OlMeetingStatus]::olMeetingCanceled) {
+                        if ($LogFile) {
+                            Write-Log -LogFile $LogFile -Message "    -> EXCLUDED: Meeting cancelled" -Level "SKIP"
+                        }
+                        $ignoredCount++
+                        continue
+                    }
+                } catch {
+                    # Property doesn't exist (test mock), continue processing
+                }
+
+                # Skip declined meetings (safe property check for both COM objects and test mocks)
+                try {
+                    if ($item.ResponseStatus -eq [Microsoft.Office.Interop.Outlook.OlResponseStatus]::olResponseDeclined) {
+                        if ($LogFile) {
+                            Write-Log -LogFile $LogFile -Message "    -> EXCLUDED: Meeting declined" -Level "SKIP"
+                        }
+                        $ignoredCount++
+                        continue
+                    }
+                } catch {
+                    # Property doesn't exist (test mock), continue processing
+                }
+
+                $hours = $duration
                 $totalHours += $hours
                 $appointmentCount++
+                if ($LogFile) {
+                    Write-Log -LogFile $LogFile -Message "    -> INCLUDED in time estimate" -Level "INCL"
+                }
             }
         }
+    }
+
+    if ($LogFile) {
+        $cancelledCount = 0
+        $declinedCount = 0
+        # Count cancelled and declined from the total excluded
+        $totalExcluded = $ignoredCount + $allDayCount
+        Write-Log -LogFile $LogFile -Message "Summary for $PeriodName - Total: $([Math]::Round($totalHours, 2)) hours | Included: $appointmentCount appointments | Excluded: $totalExcluded"
+        Write-Log -LogFile $LogFile -Message ""
     }
 
     return @{
@@ -429,16 +628,36 @@ if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administ
     Exit 1
 }
 
-# Load ignore patterns
+# Initialize logging
 $scriptDir = Get-ScriptDirectory
+$logFile = Initialize-LogFile -ScriptDir $scriptDir
+
+Write-Host "Meeting Hour Summary Script - Logging to: $logFile" -ForegroundColor Green
+Write-Host ""
+
+Write-Log -LogFile $logFile -Message "Script execution started"
+Write-Log -LogFile $logFile -Message "Script directory: $scriptDir"
+
+# Load ignore patterns
 $ignorePatterns = Load-IgnorePatterns -ScriptDir $scriptDir
+Write-Log -LogFile $logFile -Message "Loaded $($ignorePatterns.Count) ignore patterns from ignore_appointments.txt"
+if ($ignorePatterns.Count -gt 0) {
+    foreach ($pattern in $ignorePatterns) {
+        Write-Log -LogFile $logFile -Message "  - Pattern: $pattern"
+    }
+}
+Write-Log -LogFile $logFile -Message ""
 
 # Load Outlook COM object
+Write-Log -LogFile $logFile -Message "Connecting to Outlook..."
 try {
     $outlook = New-Object -ComObject Outlook.Application
     $namespace = $outlook.GetNamespace("MAPI")
     $calendar = $namespace.GetDefaultFolder([Microsoft.Office.Interop.Outlook.OlDefaultFolders]::olFolderCalendar)
+    Write-Log -LogFile $logFile -Message "Successfully connected to Outlook calendar"
+    Write-Log -LogFile $logFile -Message ""
 } catch {
+    Write-Log -LogFile $logFile -Message "ERROR: Failed to connect to Outlook - $_" -Level "ERROR"
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.MessageBox]::Show(
         "Failed to connect to Outlook. Please ensure Outlook is installed and configured.`n`nError: $_",
@@ -452,8 +671,8 @@ try {
 # Define time periods
 $now = Get-Date
 $today = $now.Date
-$tomorrow = $today.AddDays(1)
-$dayAfterTomorrow = $tomorrow.AddDays(1)
+$nextWorkingDay = Get-NextWorkingDay -ReferenceDate $now
+$dayAfterNextWorkingDay = Get-NextWorkingDay -ReferenceDate $nextWorkingDay
 
 # Get this week's Monday-Friday bounds
 $thisWeekBounds = Get-WeekdayBounds -ReferenceDate $now
@@ -470,7 +689,31 @@ $filter = "[Start] >= '" + $fetchStartDate.ToString("g") + "' AND [Start] < '" +
 
 try {
     $items = $calendar.Items.Restrict($filter)
+    $itemCount = 0
+    $allItems = @()
+    foreach ($item in $items) {
+        if ($item -is [Microsoft.Office.Interop.Outlook.AppointmentItem] -or $item -is [PSCustomObject]) {
+            $allItems += [PSCustomObject]@{
+                Subject = $item.Subject
+                Start = $item.Start
+                End = $item.End
+            }
+            $itemCount++
+        }
+    }
+    Write-Log -LogFile $logFile -Message "Successfully retrieved calendar items from $($fetchStartDate.ToString('yyyy-MM-dd')) to $($fetchEndDate.ToString('yyyy-MM-dd'))"
+    Write-Log -LogFile $logFile -Message "Total calendar items found: $itemCount"
+    Write-Log -LogFile $logFile -Message ""
+    Write-Log -LogFile $logFile -Message "=========================================  "
+    Write-Log -LogFile $logFile -Message "ALL CALENDAR ITEMS RETRIEVED FROM OUTLOOK"
+    Write-Log -LogFile $logFile -Message "========================================="
+    Write-Log -LogFile $logFile -Message ""
+    foreach ($item in ($allItems | Sort-Object Start)) {
+        Write-Log -LogFile $logFile -Message "  $($item.Start.ToString('yyyy-MM-dd HH:mm')) | $($item.Subject)"
+    }
+    Write-Log -LogFile $logFile -Message ""
 } catch {
+    Write-Log -LogFile $logFile -Message "ERROR: Failed to retrieve calendar items - $_" -Level "ERROR"
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.MessageBox]::Show(
         "Failed to retrieve calendar items.`n`nError: $_",
@@ -482,10 +725,15 @@ try {
 }
 
 # Calculate meeting hours for each period
-$todayHours = Get-MeetingHours -Items $items -StartDate $today -EndDate $tomorrow -IgnorePatterns $ignorePatterns
-$tomorrowHours = Get-MeetingHours -Items $items -StartDate $tomorrow -EndDate $dayAfterTomorrow -IgnorePatterns $ignorePatterns
-$thisWeekHours = Get-MeetingHours -Items $items -StartDate $thisWeekBounds.Monday -EndDate $thisWeekBounds.Friday -IgnorePatterns $ignorePatterns
-$nextWeekHours = Get-MeetingHours -Items $items -StartDate $nextWeekBounds.Monday -EndDate $nextWeekBounds.Friday -IgnorePatterns $ignorePatterns
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message "CALCULATING MEETING HOURS"
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message ""
+
+$todayHours = Get-MeetingHours -Items $items -StartDate $today -EndDate $nextWorkingDay -IgnorePatterns $ignorePatterns -LogFile $logFile -PeriodName "Today"
+$nextWorkingDayHours = Get-MeetingHours -Items $items -StartDate $nextWorkingDay -EndDate $dayAfterNextWorkingDay -IgnorePatterns $ignorePatterns -LogFile $logFile -PeriodName "Next Working Day"
+$thisWeekHours = Get-MeetingHours -Items $items -StartDate $thisWeekBounds.Monday -EndDate $thisWeekBounds.Friday -IgnorePatterns $ignorePatterns -LogFile $logFile -PeriodName "This Week"
+$nextWeekHours = Get-MeetingHours -Items $items -StartDate $nextWeekBounds.Monday -EndDate $nextWeekBounds.Friday -IgnorePatterns $ignorePatterns -LogFile $logFile -PeriodName "Next Week"
 
 # -----------------------------------------------------------------------------
 # Process Full-Hour Meetings for Rescheduling
@@ -495,7 +743,12 @@ $nextWeekHours = Get-MeetingHours -Items $items -StartDate $nextWeekBounds.Monda
 $emailTemplate = Load-EmailTemplate -ScriptDir $scriptDir
 
 # Find full-hour meetings in the next 14 days
-$fullHourMeetings = Get-FullHourMeetings -Items $items -StartDate $now -EndDate $fourteenDaysLater -IgnorePatterns $ignorePatterns -MaxCount 10
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message "SCANNING FOR FULL-HOUR MEETINGS"
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message ""
+
+$fullHourMeetings = Get-FullHourMeetings -Items $items -StartDate $now -EndDate $fourteenDaysLater -IgnorePatterns $ignorePatterns -MaxCount 10 -LogFile $logFile
 
 # Process each full-hour meeting
 foreach ($meeting in $fullHourMeetings) {
@@ -613,7 +866,7 @@ function Add-SummaryRow {
 
 # Add summary rows
 $yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "Today:" -Hours $todayHours.Hours -Count $todayHours.Count -DateRange $today.ToString("dddd, MMMM dd")
-$yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "Tomorrow:" -Hours $tomorrowHours.Hours -Count $tomorrowHours.Count -DateRange $tomorrow.ToString("dddd, MMMM dd")
+$yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "Next Working Day:" -Hours $nextWorkingDayHours.Hours -Count $nextWorkingDayHours.Count -DateRange $nextWorkingDay.ToString("dddd, MMMM dd")
 $yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "This Week:" -Hours $thisWeekHours.Hours -Count $thisWeekHours.Count -DateRange "$($thisWeekBounds.Monday.ToString('MMM dd')) - $($thisWeekBounds.Friday.Date.ToString('MMM dd'))"
 $yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "Next Week:" -Hours $nextWeekHours.Hours -Count $nextWeekHours.Count -DateRange "$($nextWeekBounds.Monday.ToString('MMM dd')) - $($nextWeekBounds.Friday.Date.ToString('MMM dd'))"
 
@@ -650,8 +903,28 @@ $form.AcceptButton = $okButton
 # Adjust form height based on content
 $form.Height = $yPos + 130
 
+# Log final summary
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message "EXECUTION SUMMARY"
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message "Today: $($todayHours.Hours) hours ($($todayHours.Count) meetings)"
+Write-Log -LogFile $logFile -Message "Next Working Day ($($nextWorkingDay.ToString('yyyy-MM-dd'))): $($nextWorkingDayHours.Hours) hours ($($nextWorkingDayHours.Count) meetings)"
+Write-Log -LogFile $logFile -Message "This Week: $($thisWeekHours.Hours) hours ($($thisWeekHours.Count) meetings)"
+Write-Log -LogFile $logFile -Message "Next Week: $($nextWeekHours.Hours) hours ($($nextWeekHours.Count) meetings)"
+Write-Log -LogFile $logFile -Message "Full-hour meetings found: $($fullHourMeetings.Count)"
+Write-Log -LogFile $logFile -Message ""
+Write-Log -LogFile $logFile -Message "Script execution completed successfully"
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message ""
+
+Write-Host "Processing complete. Detailed log saved to: $logFile" -ForegroundColor Green
+Write-Host "Check the log file to see all appointments found and filtering decisions." -ForegroundColor Cyan
+Write-Host ""
+
 # Show the form
 $form.ShowDialog() | Out-Null
+
+Write-Host "For detailed information about which appointments were included/excluded, see: $logFile" -ForegroundColor Yellow
 
 # Cleanup COM objects
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($calendar) | Out-Null
