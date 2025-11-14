@@ -1,22 +1,28 @@
 # Outlook Meeting Hour Summary
 
-PowerShell script that displays meeting hour summaries from your Outlook calendar and helps optimize meeting schedules by suggesting time shifts for full-hour meetings.
+PowerShell script that displays meeting hour summaries from your Outlook calendar with a visual bar chart, and helps optimize meeting schedules by suggesting time shifts for full-hour meetings.
 
 ## Features
 
-### Meeting Hour Summary
+### Meeting Hour Summary with Visual Bar Chart
 - Displays total meeting hours for:
   - Today
-  - Tomorrow
+  - Next Working Day (skips weekends)
   - This week (Monday-Friday)
   - Next week (Monday-Friday)
+- **5-Day Bar Chart** showing the next 5 working days:
+  - Color-coded bars: Green (0-3h), Yellow (3-4h), Red (4+h)
+  - Visual overview of upcoming meeting load
+  - Helps identify overloaded days at a glance
+  - Automatically skips weekends
 - Excludes appointments matching configurable regex patterns
 - Shows results in a clean Windows Forms popup
 
-### Full-Hour Meeting Optimizer (New)
+### Full-Hour Meeting Optimizer
 - Scans calendar for meetings starting exactly on the hour (e.g., 10:00, 11:00)
 - Suggests shifting meetings to :05 (e.g., 10:00 → 10:05) for better work-life balance
 - Creates draft emails to organizers with customizable templates
+- **"Never Ask Again"** option to permanently skip specific meetings
 - Processes up to 10 meetings at a time
 - Excludes all-day events, private meetings, and Out of Office entries
 - Emails are saved as drafts (never sent automatically)
@@ -55,12 +61,17 @@ Or from the repository root:
 1. **Full-Hour Meeting Check** (if any found):
    - Popup appears for each meeting starting on the hour
    - Shows meeting subject, start time, and organizer
-   - Click **Yes** to create a draft email requesting time shift to :05
-   - Click **No** to skip that meeting
+   - Three options:
+     - **Create Draft Email** - Create a draft requesting time shift to :05
+     - **Skip for Now** - Skip this meeting this time
+     - **Never Ask Again** - Permanently ignore this meeting
    - Draft emails are saved to your Outlook Drafts folder
 
-2. **Meeting Hour Summary**:
-   - Main summary window appears showing total hours and meeting counts
+2. **Meeting Hour Summary with Bar Chart**:
+   - Main summary window appears showing:
+     - Total hours and meeting counts for today, next working day, this week, and next week
+     - **5-day color-coded bar chart** showing upcoming meeting load
+     - Green bars (0-3 hours), Yellow bars (3-4 hours), Red bars (4+ hours)
    - Click **OK** to close
 
 ## Configuration
@@ -187,31 +198,43 @@ outlook_automation/
 │   ├── Show-MeetingHourSummary.ps1             # Main script
 │   ├── Show-MeetingHourSummary.Tests.ps1       # Pester tests
 │   ├── Run-Tests.ps1                            # Test runner
+│   ├── README_TESTS.md                          # Test documentation
 │   ├── ignore_appointments.txt                  # Ignore patterns (optional)
-│   └── meeting_change_request_template.txt      # Email template (customizable)
+│   ├── ignored_full_hour_appointments.txt       # Never Ask Again list (auto-generated)
+│   ├── meeting_change_request_template.txt      # Email template (customizable)
+│   └── log.txt                                  # Execution log (auto-generated)
 └── example/
     └── update_calendar_busytype.ps1             # Other utilities
 ```
 
 ## How It Works
 
-### Meeting Hour Summary
+### Meeting Hour Summary with Bar Chart
 1. Connects to Outlook via COM objects
 2. Retrieves calendar items from today through next week
 3. Filters appointments based on ignore patterns
-4. Excludes all-day events
-5. Calculates total hours for each time period
-6. Displays results in a Windows Forms popup
+4. Excludes all-day events, cancelled meetings, and declined meetings
+5. Calculates total hours for each time period:
+   - Today
+   - Next Working Day (automatically skips weekends)
+   - This Week (Monday-Friday)
+   - Next Week (Monday-Friday)
+6. **Calculates daily hours for the next 5 working days**:
+   - Automatically skips weekends (Saturday and Sunday)
+   - Determines color coding based on hours per day
+7. Displays results in a Windows Forms popup with color-coded bar chart
 
 ### Full-Hour Meeting Optimizer
 1. Scans calendar items for the next 14 days
 2. Identifies meetings starting exactly at :00 (minute = 0, second = 0)
-3. Applies filters (all-day, private, OOO, ignore patterns)
-4. Sorts by earliest start time
-5. Limits to 10 meetings per run
-6. Shows confirmation dialog for each meeting
-7. Creates draft email using template with placeholders replaced
-8. Saves to Drafts folder (never sends automatically)
+3. Applies filters (all-day, private, OOO, ignore patterns, cancelled, declined)
+4. Excludes previously ignored meetings (from ignored_full_hour_appointments.txt)
+5. Sorts by earliest start time
+6. Limits to 10 meetings per run
+7. Shows confirmation dialog for each meeting with three options
+8. Creates draft email using template with placeholders replaced
+9. Saves to Drafts folder (never sends automatically)
+10. Saves "Never Ask Again" selections to ignored_full_hour_appointments.txt
 
 ## Notes
 
