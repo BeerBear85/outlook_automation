@@ -122,6 +122,105 @@ Best regards
     }
 }
 
+function Load-IgnoredFullHourAppointments {
+    <#
+    .SYNOPSIS
+        Loads appointment identifiers from ignored_full_hour_appointments.txt file.
+    .OUTPUTS
+        Array of appointment identifiers to ignore.
+    #>
+    param (
+        [string]$ScriptDir
+    )
+
+    $ignoreFile = Join-Path $ScriptDir "ignored_full_hour_appointments.txt"
+    $identifiers = @()
+
+    if (Test-Path $ignoreFile) {
+        Get-Content $ignoreFile | ForEach-Object {
+            $line = $_.Trim()
+            # Skip empty lines and comments
+            if ($line -and -not $line.StartsWith("#")) {
+                $identifiers += $line
+            }
+        }
+    }
+
+    return $identifiers
+}
+
+function Save-IgnoredFullHourAppointment {
+    <#
+    .SYNOPSIS
+        Adds an appointment identifier to the ignored_full_hour_appointments.txt file.
+    #>
+    param (
+        [string]$ScriptDir,
+        [string]$Identifier,
+        [string]$Subject,
+        [DateTime]$StartTime
+    )
+
+    $ignoreFile = Join-Path $ScriptDir "ignored_full_hour_appointments.txt"
+
+    # Create file with header if it doesn't exist
+    if (-not (Test-Path $ignoreFile)) {
+        $header = @"
+# Ignored Full-Hour Appointments
+# This file contains appointment identifiers that should not trigger the reschedule popup.
+# Each line contains an EntryID or GlobalAppointmentID.
+# Lines starting with # are comments and will be ignored.
+# You can manually edit this file to add or remove entries.
+#
+"@
+        $header | Out-File -FilePath $ignoreFile -Encoding utf8
+    }
+
+    # Add comment with meeting details and identifier
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $comment = "# Added: $timestamp | Subject: $Subject | Start: $($StartTime.ToString('yyyy-MM-dd HH:mm'))"
+    $comment | Out-File -FilePath $ignoreFile -Append -Encoding utf8
+    $Identifier | Out-File -FilePath $ignoreFile -Append -Encoding utf8
+}
+
+function Get-AppointmentIdentifier {
+    <#
+    .SYNOPSIS
+        Gets a stable identifier for an Outlook appointment.
+        Tries GlobalAppointmentID first, falls back to EntryID.
+    .OUTPUTS
+        String containing the appointment identifier.
+    #>
+    param (
+        [Object]$AppointmentItem
+    )
+
+    try {
+        # Try to get GlobalAppointmentID first (more stable across updates)
+        $globalId = $AppointmentItem.GlobalAppointmentID
+        if ($globalId) {
+            return $globalId
+        }
+    }
+    catch {
+        # GlobalAppointmentID not available or failed
+    }
+
+    try {
+        # Fall back to EntryID
+        $entryId = $AppointmentItem.EntryID
+        if ($entryId) {
+            return $entryId
+        }
+    }
+    catch {
+        # EntryID not available or failed
+    }
+
+    # If both fail, return empty string (appointment won't be ignorable)
+    return ""
+}
+
 function Get-WeekdayBounds {
     <#
     .SYNOPSIS
@@ -201,7 +300,7 @@ function Get-FullHourMeetings {
     <#
     .SYNOPSIS
         Finds meetings starting exactly on the full hour in the next 14 days.
-        Excludes all-day events, private items, and Out of Office entries.
+        Excludes all-day events, private items, Out of Office entries, and previously ignored meetings.
         Returns at most 10 meetings, starting with the earliest.
     #>
     param (
@@ -209,12 +308,16 @@ function Get-FullHourMeetings {
         [DateTime]$StartDate,
         [DateTime]$EndDate,
         [string[]]$IgnorePatterns,
+        [string[]]$IgnoredAppointmentIds = @(),
         [int]$MaxCount = 10,
         [string]$LogFile = $null
     )
 
     if ($LogFile) {
         Write-Log -LogFile $LogFile -Message "Scanning for full-hour meetings (starting at :00) in the next 14 days"
+        if ($IgnoredAppointmentIds.Count -gt 0) {
+            Write-Log -LogFile $LogFile -Message "  Loaded $($IgnoredAppointmentIds.Count) previously ignored appointment(s)"
+        }
     }
 
     $fullHourMeetings = @()
@@ -228,6 +331,7 @@ function Get-FullHourMeetings {
         'NotFullHour' = 0
         'Cancelled' = 0
         'Declined' = 0
+        'PreviouslyIgnored' = 0
     }
 
     foreach ($item in $Items) {
@@ -289,6 +393,16 @@ function Get-FullHourMeetings {
 
                 # Check if start time is exactly on the hour (minute = 0, second = 0)
                 if ($appointmentStart.Minute -eq 0 -and $appointmentStart.Second -eq 0) {
+                    # Check if this appointment was previously ignored
+                    $appointmentId = Get-AppointmentIdentifier -AppointmentItem $item
+                    if ($appointmentId -and $IgnoredAppointmentIds -contains $appointmentId) {
+                        $skippedReasons['PreviouslyIgnored']++
+                        if ($LogFile) {
+                            Write-Log -LogFile $LogFile -Message "  Skipped previously ignored meeting: '$($item.Subject)' | Start: $($appointmentStart.ToString('yyyy-MM-dd HH:mm'))"
+                        }
+                        continue
+                    }
+
                     $fullHourMeetings += $item
                     if ($LogFile) {
                         Write-Log -LogFile $LogFile -Message "  Found full-hour meeting: '$($item.Subject)' | Start: $($appointmentStart.ToString('yyyy-MM-dd HH:mm')) | Organizer: $($item.Organizer)"
@@ -305,7 +419,7 @@ function Get-FullHourMeetings {
 
     if ($LogFile) {
         Write-Log -LogFile $LogFile -Message "Full-hour meeting scan complete: Found $($fullHourMeetings.Count) meetings"
-        Write-Log -LogFile $LogFile -Message "  Skipped: $($skippedReasons['Ignored']) (ignored pattern), $($skippedReasons['AllDay']) (all-day), $($skippedReasons['Private']) (private), $($skippedReasons['OutOfOffice']) (OOO), $($skippedReasons['AlreadyStarted']) (already started), $($skippedReasons['Cancelled']) (cancelled), $($skippedReasons['Declined']) (declined)"
+        Write-Log -LogFile $LogFile -Message "  Skipped: $($skippedReasons['Ignored']) (ignored pattern), $($skippedReasons['AllDay']) (all-day), $($skippedReasons['Private']) (private), $($skippedReasons['OutOfOffice']) (OOO), $($skippedReasons['AlreadyStarted']) (already started), $($skippedReasons['Cancelled']) (cancelled), $($skippedReasons['Declined']) (declined), $($skippedReasons['PreviouslyIgnored']) (previously ignored)"
         Write-Log -LogFile $LogFile -Message ""
     }
 
@@ -317,7 +431,7 @@ function Show-MeetingRescheduleDialog {
     .SYNOPSIS
         Shows a popup dialog asking if user wants to draft a reschedule email.
     .OUTPUTS
-        Boolean indicating if user confirmed (True) or declined (False).
+        String indicating user choice: "CreateDraft", "Skip", or "NeverAskAgain".
     #>
     param (
         [string]$Subject,
@@ -331,7 +445,7 @@ function Show-MeetingRescheduleDialog {
     # Create form
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "Reschedule Meeting?"
-    $form.Size = New-Object System.Drawing.Size(500, 280)
+    $form.Size = New-Object System.Drawing.Size(550, 320)
     $form.StartPosition = "CenterScreen"
     $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
     $form.MaximizeBox = $false
@@ -341,7 +455,7 @@ function Show-MeetingRescheduleDialog {
     # Title label
     $titleLabel = New-Object System.Windows.Forms.Label
     $titleLabel.Location = New-Object System.Drawing.Point(20, 20)
-    $titleLabel.Size = New-Object System.Drawing.Size(460, 25)
+    $titleLabel.Size = New-Object System.Drawing.Size(510, 25)
     $titleLabel.Text = "Meeting starts at full hour"
     $titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
     $form.Controls.Add($titleLabel)
@@ -349,7 +463,7 @@ function Show-MeetingRescheduleDialog {
     # Message label
     $messageLabel = New-Object System.Windows.Forms.Label
     $messageLabel.Location = New-Object System.Drawing.Point(20, 55)
-    $messageLabel.Size = New-Object System.Drawing.Size(460, 60)
+    $messageLabel.Size = New-Object System.Drawing.Size(510, 60)
     $messageLabel.Text = "The following meeting starts exactly on the hour. Would you like to draft an email requesting it be moved to :05?"
     $messageLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
     $form.Controls.Add($messageLabel)
@@ -357,36 +471,61 @@ function Show-MeetingRescheduleDialog {
     # Details label
     $detailsLabel = New-Object System.Windows.Forms.Label
     $detailsLabel.Location = New-Object System.Drawing.Point(20, 120)
-    $detailsLabel.Size = New-Object System.Drawing.Size(460, 80)
+    $detailsLabel.Size = New-Object System.Drawing.Size(510, 80)
     $detailsLabel.Text = "Subject: $Subject`r`nStart Time: $($StartTime.ToString('dddd, MMMM dd, yyyy HH:mm'))`r`nOrganizer: $Organizer"
     $detailsLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
     $detailsLabel.ForeColor = [System.Drawing.Color]::DarkBlue
     $form.Controls.Add($detailsLabel)
 
-    # Yes button
-    $yesButton = New-Object System.Windows.Forms.Button
-    $yesButton.Location = New-Object System.Drawing.Point(150, 210)
-    $yesButton.Size = New-Object System.Drawing.Size(90, 30)
-    $yesButton.Text = "Yes"
-    $yesButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
-    $yesButton.DialogResult = [System.Windows.Forms.DialogResult]::Yes
-    $form.Controls.Add($yesButton)
+    # Store user choice
+    $script:userChoice = "Skip"
 
-    # No button
-    $noButton = New-Object System.Windows.Forms.Button
-    $noButton.Location = New-Object System.Drawing.Point(260, 210)
-    $noButton.Size = New-Object System.Drawing.Size(90, 30)
-    $noButton.Text = "No"
-    $noButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
-    $noButton.DialogResult = [System.Windows.Forms.DialogResult]::No
-    $form.Controls.Add($noButton)
+    # Create Draft button
+    $createDraftButton = New-Object System.Windows.Forms.Button
+    $createDraftButton.Location = New-Object System.Drawing.Point(30, 220)
+    $createDraftButton.Size = New-Object System.Drawing.Size(150, 35)
+    $createDraftButton.Text = "Create Draft Email"
+    $createDraftButton.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $createDraftButton.Add_Click({
+        $script:userChoice = "CreateDraft"
+        $form.DialogResult = [System.Windows.Forms.DialogResult]::OK
+        $form.Close()
+    })
+    $form.Controls.Add($createDraftButton)
 
-    $form.AcceptButton = $yesButton
-    $form.CancelButton = $noButton
+    # Skip button
+    $skipButton = New-Object System.Windows.Forms.Button
+    $skipButton.Location = New-Object System.Drawing.Point(200, 220)
+    $skipButton.Size = New-Object System.Drawing.Size(150, 35)
+    $skipButton.Text = "Skip for Now"
+    $skipButton.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $skipButton.Add_Click({
+        $script:userChoice = "Skip"
+        $form.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+        $form.Close()
+    })
+    $form.Controls.Add($skipButton)
 
-    # Show the form and return result
-    $result = $form.ShowDialog()
-    return ($result -eq [System.Windows.Forms.DialogResult]::Yes)
+    # Never Ask Again button
+    $neverAskButton = New-Object System.Windows.Forms.Button
+    $neverAskButton.Location = New-Object System.Drawing.Point(370, 220)
+    $neverAskButton.Size = New-Object System.Drawing.Size(150, 35)
+    $neverAskButton.Text = "Never Ask Again"
+    $neverAskButton.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $neverAskButton.ForeColor = [System.Drawing.Color]::DarkRed
+    $neverAskButton.Add_Click({
+        $script:userChoice = "NeverAskAgain"
+        $form.DialogResult = [System.Windows.Forms.DialogResult]::Ignore
+        $form.Close()
+    })
+    $form.Controls.Add($neverAskButton)
+
+    $form.AcceptButton = $createDraftButton
+    $form.CancelButton = $skipButton
+
+    # Show the form and return user choice
+    $form.ShowDialog() | Out-Null
+    return $script:userChoice
 }
 
 function New-RescheduleDraftEmail {
@@ -742,24 +881,30 @@ $nextWeekHours = Get-MeetingHours -Items $items -StartDate $nextWeekBounds.Monda
 # Load email template
 $emailTemplate = Load-EmailTemplate -ScriptDir $scriptDir
 
+# Load ignored appointments list
+$ignoredAppointmentIds = Load-IgnoredFullHourAppointments -ScriptDir $scriptDir
+Write-Log -LogFile $logFile -Message "Loaded $($ignoredAppointmentIds.Count) ignored full-hour appointment(s)"
+Write-Log -LogFile $logFile -Message ""
+
 # Find full-hour meetings in the next 14 days
 Write-Log -LogFile $logFile -Message "========================================="
 Write-Log -LogFile $logFile -Message "SCANNING FOR FULL-HOUR MEETINGS"
 Write-Log -LogFile $logFile -Message "========================================="
 Write-Log -LogFile $logFile -Message ""
 
-$fullHourMeetings = Get-FullHourMeetings -Items $items -StartDate $now -EndDate $fourteenDaysLater -IgnorePatterns $ignorePatterns -MaxCount 10 -LogFile $logFile
+$fullHourMeetings = Get-FullHourMeetings -Items $items -StartDate $now -EndDate $fourteenDaysLater -IgnorePatterns $ignorePatterns -IgnoredAppointmentIds $ignoredAppointmentIds -MaxCount 10 -LogFile $logFile
 
 # Process each full-hour meeting
 foreach ($meeting in $fullHourMeetings) {
-    # Show confirmation dialog
-    $shouldCreateDraft = Show-MeetingRescheduleDialog -Subject $meeting.Subject -StartTime $meeting.Start -Organizer $meeting.Organizer
+    # Show confirmation dialog with three options
+    $userChoice = Show-MeetingRescheduleDialog -Subject $meeting.Subject -StartTime $meeting.Start -Organizer $meeting.Organizer
 
-    if ($shouldCreateDraft) {
+    if ($userChoice -eq "CreateDraft") {
         # Create draft email
         $success = New-RescheduleDraftEmail -Outlook $outlook -AppointmentItem $meeting -Template $emailTemplate
 
         if ($success) {
+            Write-Log -LogFile $logFile -Message "Draft email created for meeting: '$($meeting.Subject)'"
             Add-Type -AssemblyName System.Windows.Forms
             [System.Windows.Forms.MessageBox]::Show(
                 "Draft email created successfully and saved to your Drafts folder.",
@@ -768,6 +913,7 @@ foreach ($meeting in $fullHourMeetings) {
                 [System.Windows.Forms.MessageBoxIcon]::Information
             ) | Out-Null
         } else {
+            Write-Log -LogFile $logFile -Message "ERROR: Failed to create draft email for meeting: '$($meeting.Subject)'" -Level "ERROR"
             Add-Type -AssemblyName System.Windows.Forms
             [System.Windows.Forms.MessageBox]::Show(
                 "Failed to create draft email. Please check the error message.",
@@ -776,6 +922,34 @@ foreach ($meeting in $fullHourMeetings) {
                 [System.Windows.Forms.MessageBoxIcon]::Error
             ) | Out-Null
         }
+    }
+    elseif ($userChoice -eq "NeverAskAgain") {
+        # Add appointment to ignore list
+        $appointmentId = Get-AppointmentIdentifier -AppointmentItem $meeting
+        if ($appointmentId) {
+            Save-IgnoredFullHourAppointment -ScriptDir $scriptDir -Identifier $appointmentId -Subject $meeting.Subject -StartTime $meeting.Start
+            Write-Log -LogFile $logFile -Message "Added to ignore list: '$($meeting.Subject)' | ID: $appointmentId"
+            Add-Type -AssemblyName System.Windows.Forms
+            [System.Windows.Forms.MessageBox]::Show(
+                "This meeting has been added to the ignore list and will not be shown again.`n`nYou can manually edit ignored_full_hour_appointments.txt to remove it if needed.",
+                "Added to Ignore List",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Information
+            ) | Out-Null
+        } else {
+            Write-Log -LogFile $logFile -Message "WARNING: Could not get identifier for meeting: '$($meeting.Subject)'" -Level "WARN"
+            Add-Type -AssemblyName System.Windows.Forms
+            [System.Windows.Forms.MessageBox]::Show(
+                "Unable to get a stable identifier for this meeting. It cannot be added to the ignore list.",
+                "Warning",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Warning
+            ) | Out-Null
+        }
+    }
+    else {
+        # User chose "Skip" - do nothing, just log it
+        Write-Log -LogFile $logFile -Message "User skipped meeting: '$($meeting.Subject)'"
     }
 }
 
