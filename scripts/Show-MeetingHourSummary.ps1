@@ -634,6 +634,50 @@ function Write-Log {
     }
 }
 
+function Get-DailyMeetingHours {
+    <#
+    .SYNOPSIS
+        Calculates total meeting hours for each of the next N working days (Monday-Friday).
+        Skips weekends (Saturday and Sunday).
+    .OUTPUTS
+        Array of hashtables with Date, Hours, Count, and DayOfWeek properties.
+    #>
+    param (
+        [Object]$Items,
+        [DateTime]$StartDate,
+        [int]$WorkingDayCount,
+        [string[]]$IgnorePatterns,
+        [string]$LogFile = $null
+    )
+
+    $dailyHours = @()
+    $currentDate = $StartDate
+    $workingDaysFound = 0
+
+    while ($workingDaysFound -lt $WorkingDayCount) {
+        # Skip weekends (Saturday = 6, Sunday = 0)
+        if ($currentDate.DayOfWeek -ne [DayOfWeek]::Saturday -and $currentDate.DayOfWeek -ne [DayOfWeek]::Sunday) {
+            $dayStart = $currentDate
+            $dayEnd = $dayStart.AddHours(23).AddMinutes(59).AddSeconds(59)
+
+            $dayResult = Get-MeetingHours -Items $Items -StartDate $dayStart -EndDate $dayEnd -IgnorePatterns $IgnorePatterns -LogFile $LogFile -PeriodName "Working Day $($workingDaysFound + 1) - $($dayStart.ToString('yyyy-MM-dd'))"
+
+            $dailyHours += @{
+                Date = $dayStart
+                Hours = $dayResult.Hours
+                Count = $dayResult.Count
+                DayOfWeek = $dayStart.ToString("ddd")
+            }
+
+            $workingDaysFound++
+        }
+
+        $currentDate = $currentDate.AddDays(1)
+    }
+
+    return $dailyHours
+}
+
 function Get-MeetingHours {
     <#
     .SYNOPSIS
@@ -874,6 +918,13 @@ $nextWorkingDayHours = Get-MeetingHours -Items $items -StartDate $nextWorkingDay
 $thisWeekHours = Get-MeetingHours -Items $items -StartDate $thisWeekBounds.Monday -EndDate $thisWeekBounds.Friday -IgnorePatterns $ignorePatterns -LogFile $logFile -PeriodName "This Week"
 $nextWeekHours = Get-MeetingHours -Items $items -StartDate $nextWeekBounds.Monday -EndDate $nextWeekBounds.Friday -IgnorePatterns $ignorePatterns -LogFile $logFile -PeriodName "Next Week"
 
+# Calculate meeting hours for the next 5 working days (for bar chart)
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message "CALCULATING DAILY HOURS FOR BAR CHART (NEXT 5 WORKING DAYS)"
+Write-Log -LogFile $logFile -Message "========================================="
+Write-Log -LogFile $logFile -Message ""
+$dailyHours = Get-DailyMeetingHours -Items $items -StartDate $today -WorkingDayCount 5 -IgnorePatterns $ignorePatterns -LogFile $logFile
+
 # -----------------------------------------------------------------------------
 # Process Full-Hour Meetings for Rescheduling
 # -----------------------------------------------------------------------------
@@ -1043,6 +1094,106 @@ $yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "Today:" -Hours $toda
 $yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "Next Working Day:" -Hours $nextWorkingDayHours.Hours -Count $nextWorkingDayHours.Count -DateRange $nextWorkingDay.ToString("dddd, MMMM dd")
 $yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "This Week:" -Hours $thisWeekHours.Hours -Count $thisWeekHours.Count -DateRange "$($thisWeekBounds.Monday.ToString('MMM dd')) - $($thisWeekBounds.Friday.Date.ToString('MMM dd'))"
 $yPos = Add-SummaryRow -Form $form -YPosition $yPos -Label "Next Week:" -Hours $nextWeekHours.Hours -Count $nextWeekHours.Count -DateRange "$($nextWeekBounds.Monday.ToString('MMM dd')) - $($nextWeekBounds.Friday.Date.ToString('MMM dd'))"
+
+# Add 5-day bar chart
+$yPos += 10
+
+# Chart title
+$chartTitleLabel = New-Object System.Windows.Forms.Label
+$chartTitleLabel.Location = New-Object System.Drawing.Point(20, $yPos)
+$chartTitleLabel.Size = New-Object System.Drawing.Size(410, 20)
+$chartTitleLabel.Text = "Next 5 Working Days Overview"
+$chartTitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$form.Controls.Add($chartTitleLabel)
+
+$yPos += 25
+
+# Create panel for bar chart
+$chartPanel = New-Object System.Windows.Forms.Panel
+$chartPanel.Location = New-Object System.Drawing.Point(20, $yPos)
+$chartPanel.Size = New-Object System.Drawing.Size(410, 180)
+$chartPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+
+# Store daily hours data in the panel's Tag property for access in Paint event
+$chartPanel.Tag = $dailyHours
+
+# Add Paint event handler for drawing the bar chart
+$chartPanel.Add_Paint({
+    param($sender, $e)
+
+    $graphics = $e.Graphics
+    $data = $sender.Tag
+
+    if ($null -eq $data -or $data.Count -eq 0) {
+        return
+    }
+
+    # Chart dimensions
+    $chartWidth = $sender.Width - 20
+    $chartHeight = $sender.Height - 60
+    $barWidth = [Math]::Floor($chartWidth / ($data.Count * 1.5))
+    $barSpacing = [Math]::Floor($barWidth / 2)
+    $maxHours = 8  # Max scale for the chart
+    $startX = 10
+    $startY = 10
+
+    # Draw each bar
+    for ($i = 0; $i -lt $data.Count; $i++) {
+        $dayData = $data[$i]
+        $hours = $dayData.Hours
+
+        # Determine bar color based on thresholds
+        if ($hours -le 3) {
+            $barColor = [System.Drawing.Color]::FromArgb(34, 139, 34)  # Green
+        } elseif ($hours -le 4) {
+            $barColor = [System.Drawing.Color]::FromArgb(255, 193, 7)  # Yellow
+        } else {
+            $barColor = [System.Drawing.Color]::FromArgb(220, 53, 69)  # Red
+        }
+
+        # Calculate bar height (proportional to hours)
+        $barHeight = [Math]::Min(($hours / $maxHours) * $chartHeight, $chartHeight)
+
+        # Calculate bar position
+        $barX = $startX + ($i * ($barWidth + $barSpacing))
+        $barY = $startY + $chartHeight - $barHeight
+
+        # Draw bar
+        $brush = New-Object System.Drawing.SolidBrush($barColor)
+        $graphics.FillRectangle($brush, $barX, $barY, $barWidth, $barHeight)
+        $brush.Dispose()
+
+        # Draw border around bar
+        $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Black, 1)
+        $graphics.DrawRectangle($pen, $barX, $barY, $barWidth, $barHeight)
+        $pen.Dispose()
+
+        # Draw hours value on top of bar
+        $hoursText = "$($hours)h"
+        $font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
+        $textBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Black)
+        $textSize = $graphics.MeasureString($hoursText, $font)
+        $textX = $barX + ($barWidth - $textSize.Width) / 2
+        $textY = [Math]::Max($barY - $textSize.Height - 2, 2)
+        $graphics.DrawString($hoursText, $font, $textBrush, $textX, $textY)
+        $font.Dispose()
+        $textBrush.Dispose()
+
+        # Draw day label below bar
+        $dayLabel = "$($dayData.DayOfWeek)`n$($dayData.Date.ToString('MM/dd'))"
+        $labelFont = New-Object System.Drawing.Font("Segoe UI", 7)
+        $labelBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Black)
+        $labelSize = $graphics.MeasureString($dayLabel, $labelFont)
+        $labelX = $barX + ($barWidth - $labelSize.Width) / 2
+        $labelY = $startY + $chartHeight + 5
+        $graphics.DrawString($dayLabel, $labelFont, $labelBrush, $labelX, $labelY)
+        $labelFont.Dispose()
+        $labelBrush.Dispose()
+    }
+})
+
+$form.Controls.Add($chartPanel)
+$yPos += 185
 
 # Add separator line
 $separator = New-Object System.Windows.Forms.Label
