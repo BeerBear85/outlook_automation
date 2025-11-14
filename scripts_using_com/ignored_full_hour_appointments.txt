@@ -1,0 +1,14 @@
+﻿# Ignored Full-Hour Appointments
+# This file contains appointment identifiers that should not trigger the reschedule popup.
+# Each line contains an EntryID or GlobalAppointmentID.
+# Lines starting with # are comments and will be ignored.
+# You can manually edit this file to add or remove entries.
+#
+# Added: 2025-11-14 08:38:10 | Subject: ECT2 test in Japan follow-up | Start: 2025-11-14 10:00
+040000008200E00074C5B7101A82E00800000000307A99A32E52DC010000000000000000100000002F6DBDCEDD18AB48A4663EF8C900633D
+# Added: 2025-11-14 08:38:14 | Subject: Reminder: send slides + presenter info of department roadmap for A2S  | Start: 2025-11-17 10:00
+040000008200E00074C5B7101A82E008000000003008A6BE8351DC0100000000000000001000000095C5679E03E2A0419C1275ADD4C8727F
+# Added: 2025-11-14 08:38:17 | Subject: Dinner after A2S Workshop  | Start: 2025-11-19 18:00
+040000008200E00074C5B7101A82E00800000000207776CC1C49DC01000000000000000010000000B15EA0709AF9CE4C8904A4C662F3A82C
+# Added: 2025-11-14 09:23:14 | Subject: Placeholder: Alignment project deliveries and plan | Start: 2025-11-21 13:00
+040000008200E00074C5B7101A82E00800000000800ED2224653DC0100000000000000001000000047002D332C863549B9EC201194DCC086

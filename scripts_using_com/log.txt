@@ -1,0 +1,297 @@
+﻿================================================================================
+Meeting Hour Summary Script Log
+Generated: 2025-11-14 09:25:17
+================================================================================
+
+[09:25:17] [INFO] Script execution started
+[09:25:17] [INFO] Script directory: C:\repositories\outlook_automation\scripts
+[09:25:17] [INFO] Loaded 4 ignore patterns from ignore_appointments.txt
+[09:25:17] [INFO]   - Pattern: ^Lunch.*
+[09:25:17] [INFO]   - Pattern: ^Working from home.*
+[09:25:17] [INFO]   - Pattern: ^Blocker for UI\/UX Course.*
+[09:25:17] [INFO]   - Pattern: ^Syg.*
+[09:25:17] [INFO] 
+[09:25:17] [INFO] Connecting to Outlook...
+[09:25:17] [INFO] Successfully connected to Outlook calendar
+[09:25:17] [INFO] 
+[09:25:18] [INFO] Successfully retrieved calendar items from 2025-11-14 to 2025-11-28
+[09:25:18] [INFO] Total calendar items found: 61
+[09:25:18] [INFO] 
+[09:25:18] [INFO] =========================================  
+[09:25:18] [INFO] ALL CALENDAR ITEMS RETRIEVED FROM OUTLOOK
+[09:25:18] [INFO] =========================================
+[09:25:18] [INFO] 
+[09:25:18] [INFO]   2022-02-01 13:05 | 1o1 BJES
+[09:25:18] [INFO]   2022-02-24 12:15 | EDC ledermøde
+[09:25:18] [INFO]   2022-12-15 11:15 | Lunch & mails
+[09:25:18] [INFO]   2023-01-20 12:30 | Lunch & mails
+[09:25:18] [INFO]   2023-02-03 09:00 | EDC morgenmad
+[09:25:18] [INFO]   2024-03-13 09:00 | Working from home
+[09:25:18] [INFO]   2024-05-23 14:00 | EDCD Retrospective
+[09:25:18] [INFO]   2024-06-03 09:00 | Review konsulent budget
+[09:25:18] [INFO]   2025-01-13 14:05 | [Fysisk møde] THFA/BJES 1-on-1
+[09:25:18] [INFO]   2025-01-23 13:35 | TOOLS kundefeedback møde
+[09:25:18] [INFO]   2025-02-04 13:35 | EDED group meeting [In-person]
+[09:25:18] [INFO]   2025-02-05 14:00 | EDC OnePlan review: Projects and Continuous Work
+[09:25:18] [INFO]   2025-02-14 11:30 | Monthly Financial update Two-Stroke License Business
+[09:25:18] [INFO]   2025-02-28 10:00 | Monthly Safety KaHoot!
+[09:25:18] [INFO]   2025-03-20 10:05 | Release Coordination Meeting
+[09:25:18] [INFO]   2025-04-28 09:00 | SDU LSP - ErhvervsPhD w/ Everllence
+[09:25:18] [INFO]   2025-05-26 11:05 | [Fysisk møde] Troels/BJES 1-on-1
+[09:25:18] [INFO]   2025-06-16 11:05 | [Fysisk møde] Carsten/BJES 1-on-1
+[09:25:18] [INFO]   2025-06-18 10:05 | TOOLS status + NIHO/BJES 1-on-1
+[09:25:18] [INFO]   2025-06-18 13:05 | ECSSIM status + FLGA/BJES 1-on-1
+[09:25:18] [INFO]   2025-06-24 09:05 | [Fysisk møde] CRKO/BJES 1-on-1
+[09:25:18] [INFO]   2025-07-31 12:30 | ME weekly coordination with LDC-IN (EEEAC1 + EEEAC3 + EEEAB2)
+[09:25:18] [INFO]   2025-08-05 11:00 | EDCD TOOLS Demo
+[09:25:18] [INFO]   2025-08-11 12:05 | Lunch & mails
+[09:25:18] [INFO]   2025-09-15 09:05 | Digital Twin PhD status - 4 week recur
+[09:25:18] [INFO]   2025-09-29 09:15 | Status eAcademy LTI 
+[09:25:18] [INFO]   2025-10-03 11:35 | ECSDO backlog refinement
+[09:25:18] [INFO]   2025-10-10 10:00 | ECSSIM Internal Demo
+[09:25:18] [INFO]   2025-10-17 10:30 | Digital Business Network [In-person]
+[09:25:18] [INFO]   2025-10-27 13:35 | Ivan/BJES 1-on-1
+[09:25:18] [INFO]   2025-10-31 10:30 | ECSSIM Customer feedback meeting
+[09:25:18] [INFO]   2025-11-13 14:05 | Declined: ECSDO stand-up
+[09:25:18] [INFO]   2025-11-14 08:35 | Læge  (video)
+[09:25:18] [INFO]   2025-11-14 08:50 | Working from home
+[09:25:18] [INFO]   2025-11-14 10:00 | ECT2 test in Japan follow-up
+[09:25:18] [INFO]   2025-11-14 11:35 | LabVIEW Prioritization Discussion
+[09:25:18] [INFO]   2025-11-14 13:35 | Sygemeldt
+[09:25:18] [INFO]   2025-11-17 08:35 | Sygemeldt
+[09:25:18] [INFO]   2025-11-17 09:05 | Blocker for UI/UX Course [In-person]
+[09:25:18] [INFO]   2025-11-17 10:00 | Reminder: send slides + presenter info of department roadmap for A2S 
+[09:25:18] [INFO]   2025-11-17 10:05 | Declined: ECSDO stand-up
+[09:25:18] [INFO]   2025-11-17 13:30 | ArcGroup meeting + Managers - findings from Workshop days
+[09:25:18] [INFO]   2025-11-18 12:30 | Analysis of Risk Assessment for 2-Stroke Development Environment 
+[09:25:18] [INFO]   2025-11-19 08:30 | A2S Roadmap Planning Workshop - Winter 2025
+[09:25:18] [INFO]   2025-11-19 09:00 | Declined: Workshop "Virtual Sensors"
+[09:25:18] [INFO]   2025-11-19 09:30 | Workshop Virtual Sensors - Presentation Session
+[09:25:18] [INFO]   2025-11-19 11:05 | Following: Kick-off meeting Convert NTP to python
+[09:25:18] [INFO]   2025-11-19 18:00 | Dinner after A2S Workshop 
+[09:25:18] [INFO]   2025-11-20 08:30 | A2S Roadmap Planning Workshop - Winter 2025
+[09:25:18] [INFO]   2025-11-20 13:30 | ECT2 test in Japan follow-up [Tools]
+[09:25:18] [INFO]   2025-11-21 09:30 | Kick-off - Automatic deploy of cRIO RT applications
+[09:25:18] [INFO]   2025-11-21 10:30 | Webinar: How do hormones affect working life? And what to do about it? - UPDATED
+[09:25:18] [INFO]   2025-11-21 13:00 | Placeholder: Alignment project deliveries and plan
+[09:25:18] [INFO]   2025-11-24 09:05 | EDED team day blocker - VONI will make real invite later
+[09:25:18] [INFO]   2025-11-24 09:30 | EDED Teamday
+[09:25:18] [INFO]   2025-11-25 09:05 | Opfølgning
+[09:25:18] [INFO]   2025-11-25 12:05 | Frederik På Besøg
+[09:25:18] [INFO]   2025-11-26 14:30 | Ricardo/Bjørn - Your Squish evaluation 
+[09:25:18] [INFO]   2025-11-27 14:35 | Grafana Build System Monitoring & OpenTelemetry Inspiration
+[09:25:18] [INFO]   2025-11-28 09:30 | AI Guild Meeting - Autumn edition
+[09:25:18] [INFO]   2025-11-28 14:00 | Placeholder: Alignment project deliveries and plan
+[09:25:18] [INFO] 
+[09:25:18] [INFO] =========================================
+[09:25:18] [INFO] CALCULATING MEETING HOURS
+[09:25:18] [INFO] =========================================
+[09:25:19] [INFO] 
+[09:25:19] [INFO] Processing period: Today (2025-11-14 to 2025-11-17)
+[09:25:19] [INFO]   Found appointment: 'LabVIEW Prioritization Discussion' | Start: 2025-11-14 11:35 | Duration: 0.92 hours
+[09:25:19] [INFO]     Properties: MeetingStatus=1, ResponseStatus=1, AllDayEvent=False
+[09:25:19] [INCL]     -> INCLUDED in time estimate
+[09:25:19] [INFO]   Found appointment: 'ECT2 test in Japan follow-up' | Start: 2025-11-14 10:00 | Duration: 0.5 hours
+[09:25:19] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:19] [INCL]     -> INCLUDED in time estimate
+[09:25:19] [INFO]   Found appointment: 'Læge  (video)' | Start: 2025-11-14 08:35 | Duration: 0.67 hours
+[09:25:19] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:19] [INCL]     -> INCLUDED in time estimate
+[09:25:19] [INFO]   Found appointment: 'Sygemeldt' | Start: 2025-11-14 13:35 | Duration: 2.42 hours
+[09:25:19] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:19] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:19] [INFO]   Found appointment: 'Working from home' | Start: 2025-11-14 08:50 | Duration: 4.67 hours
+[09:25:19] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:19] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:19] [INFO] Summary for Today - Total: 2.09 hours | Included: 3 appointments | Excluded: 2
+[09:25:19] [INFO] 
+[09:25:19] [INFO] Processing period: Next Working Day (2025-11-17 to 2025-11-18)
+[09:25:19] [INFO]   Found appointment: 'Blocker for UI/UX Course [In-person]' | Start: 2025-11-17 09:05 | Duration: 30.92 hours
+[09:25:19] [INFO]     Properties: MeetingStatus=1, ResponseStatus=1, AllDayEvent=False
+[09:25:19] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:19] [INFO]   Found appointment: 'ArcGroup meeting + Managers - findings from Workshop days' | Start: 2025-11-17 13:30 | Duration: 0.83 hours
+[09:25:19] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:19] [INCL]     -> INCLUDED in time estimate
+[09:25:19] [INFO]   Found appointment: 'Reminder: send slides + presenter info of department roadmap for A2S ' | Start: 2025-11-17 10:00 | Duration: 0.25 hours
+[09:25:19] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:20] [INCL]     -> INCLUDED in time estimate
+[09:25:20] [INFO]   Found appointment: 'Declined: ECSDO stand-up' | Start: 2025-11-17 10:05 | Duration: 0.42 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=4, AllDayEvent=False
+[09:25:20] [SKIP]     -> EXCLUDED: Meeting declined
+[09:25:20] [INFO]   Found appointment: 'Sygemeldt' | Start: 2025-11-17 08:35 | Duration: 7.42 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:20] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:20] [INFO] Summary for Next Working Day - Total: 1.08 hours | Included: 2 appointments | Excluded: 3
+[09:25:20] [INFO] 
+[09:25:20] [INFO] Processing period: This Week (2025-11-10 to 2025-11-14)
+[09:25:20] [INFO]   Found appointment: 'LabVIEW Prioritization Discussion' | Start: 2025-11-14 11:35 | Duration: 0.92 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=1, ResponseStatus=1, AllDayEvent=False
+[09:25:20] [INCL]     -> INCLUDED in time estimate
+[09:25:20] [INFO]   Found appointment: 'ECT2 test in Japan follow-up' | Start: 2025-11-14 10:00 | Duration: 0.5 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:20] [INCL]     -> INCLUDED in time estimate
+[09:25:20] [INFO]   Found appointment: 'Læge  (video)' | Start: 2025-11-14 08:35 | Duration: 0.67 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:20] [INCL]     -> INCLUDED in time estimate
+[09:25:20] [INFO]   Found appointment: 'Sygemeldt' | Start: 2025-11-14 13:35 | Duration: 2.42 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:20] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:20] [INFO]   Found appointment: 'Working from home' | Start: 2025-11-14 08:50 | Duration: 4.67 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:20] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:20] [INFO]   Found appointment: 'Declined: ECSDO stand-up' | Start: 2025-11-13 14:05 | Duration: 0.42 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=4, AllDayEvent=False
+[09:25:20] [SKIP]     -> EXCLUDED: Meeting declined
+[09:25:20] [INFO] Summary for This Week - Total: 2.09 hours | Included: 3 appointments | Excluded: 3
+[09:25:20] [INFO] 
+[09:25:20] [INFO] Processing period: Next Week (2025-11-17 to 2025-11-21)
+[09:25:20] [INFO]   Found appointment: 'Webinar: How do hormones affect working life? And what to do about it? - UPDATED' | Start: 2025-11-21 10:30 | Duration: 1 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=5, AllDayEvent=False
+[09:25:20] [INCL]     -> INCLUDED in time estimate
+[09:25:20] [INFO]   Found appointment: 'Blocker for UI/UX Course [In-person]' | Start: 2025-11-17 09:05 | Duration: 30.92 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=1, ResponseStatus=1, AllDayEvent=False
+[09:25:20] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:20] [INFO]   Found appointment: 'Declined: Workshop "Virtual Sensors"' | Start: 2025-11-19 09:00 | Duration: 6 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=4, AllDayEvent=False
+[09:25:20] [SKIP]     -> EXCLUDED: Meeting declined
+[09:25:20] [INFO]   Found appointment: 'Dinner after A2S Workshop ' | Start: 2025-11-19 18:00 | Duration: 2 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:20] [INCL]     -> INCLUDED in time estimate
+[09:25:20] [INFO]   Found appointment: 'A2S Roadmap Planning Workshop - Winter 2025' | Start: 2025-11-20 08:30 | Duration: 4 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:20] [INCL]     -> INCLUDED in time estimate
+[09:25:20] [INFO]   Found appointment: 'A2S Roadmap Planning Workshop - Winter 2025' | Start: 2025-11-19 08:30 | Duration: 7.5 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:20] [INCL]     -> INCLUDED in time estimate
+[09:25:20] [INFO]   Found appointment: 'Analysis of Risk Assessment for 2-Stroke Development Environment ' | Start: 2025-11-18 12:30 | Duration: 0.5 hours
+[09:25:20] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'Following: Kick-off meeting Convert NTP to python' | Start: 2025-11-19 11:05 | Duration: 0.92 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=2, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'ArcGroup meeting + Managers - findings from Workshop days' | Start: 2025-11-17 13:30 | Duration: 0.83 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'Workshop Virtual Sensors - Presentation Session' | Start: 2025-11-19 09:30 | Duration: 2.5 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=5, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'ECT2 test in Japan follow-up [Tools]' | Start: 2025-11-20 13:30 | Duration: 0.5 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'Reminder: send slides + presenter info of department roadmap for A2S ' | Start: 2025-11-17 10:00 | Duration: 0.25 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'Kick-off - Automatic deploy of cRIO RT applications' | Start: 2025-11-21 09:30 | Duration: 1 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=2, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'Declined: ECSDO stand-up' | Start: 2025-11-17 10:05 | Duration: 0.42 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=4, AllDayEvent=False
+[09:25:21] [SKIP]     -> EXCLUDED: Meeting declined
+[09:25:21] [INFO]   Found appointment: 'Sygemeldt' | Start: 2025-11-17 08:35 | Duration: 7.42 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:21] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:21] [INFO]   Found appointment: 'Placeholder: Alignment project deliveries and plan' | Start: 2025-11-21 13:00 | Duration: 1.83 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO] Summary for Next Week - Total: 22.83 hours | Included: 12 appointments | Excluded: 4
+[09:25:21] [INFO] 
+[09:25:21] [INFO] =========================================
+[09:25:21] [INFO] CALCULATING DAILY HOURS FOR BAR CHART (NEXT 5 WORKING DAYS)
+[09:25:21] [INFO] =========================================
+[09:25:21] [INFO] 
+[09:25:21] [INFO] Processing period: Working Day 1 - 2025-11-14 (2025-11-14 to 2025-11-14)
+[09:25:21] [INFO]   Found appointment: 'LabVIEW Prioritization Discussion' | Start: 2025-11-14 11:35 | Duration: 0.92 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=1, ResponseStatus=1, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'ECT2 test in Japan follow-up' | Start: 2025-11-14 10:00 | Duration: 0.5 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'Læge  (video)' | Start: 2025-11-14 08:35 | Duration: 0.67 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:21] [INCL]     -> INCLUDED in time estimate
+[09:25:21] [INFO]   Found appointment: 'Sygemeldt' | Start: 2025-11-14 13:35 | Duration: 2.42 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:21] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:21] [INFO]   Found appointment: 'Working from home' | Start: 2025-11-14 08:50 | Duration: 4.67 hours
+[09:25:21] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:21] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:21] [INFO] Summary for Working Day 1 - 2025-11-14 - Total: 2.09 hours | Included: 3 appointments | Excluded: 2
+[09:25:21] [INFO] 
+[09:25:21] [INFO] Processing period: Working Day 2 - 2025-11-17 (2025-11-17 to 2025-11-17)
+[09:25:22] [INFO]   Found appointment: 'Blocker for UI/UX Course [In-person]' | Start: 2025-11-17 09:05 | Duration: 30.92 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=1, ResponseStatus=1, AllDayEvent=False
+[09:25:22] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:22] [INFO]   Found appointment: 'ArcGroup meeting + Managers - findings from Workshop days' | Start: 2025-11-17 13:30 | Duration: 0.83 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:22] [INCL]     -> INCLUDED in time estimate
+[09:25:22] [INFO]   Found appointment: 'Reminder: send slides + presenter info of department roadmap for A2S ' | Start: 2025-11-17 10:00 | Duration: 0.25 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:22] [INCL]     -> INCLUDED in time estimate
+[09:25:22] [INFO]   Found appointment: 'Declined: ECSDO stand-up' | Start: 2025-11-17 10:05 | Duration: 0.42 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=3, ResponseStatus=4, AllDayEvent=False
+[09:25:22] [SKIP]     -> EXCLUDED: Meeting declined
+[09:25:22] [INFO]   Found appointment: 'Sygemeldt' | Start: 2025-11-17 08:35 | Duration: 7.42 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=N/A, ResponseStatus=1, AllDayEvent=False
+[09:25:22] [SKIP]     -> EXCLUDED: Matches ignore pattern
+[09:25:22] [INFO] Summary for Working Day 2 - 2025-11-17 - Total: 1.08 hours | Included: 2 appointments | Excluded: 3
+[09:25:22] [INFO] 
+[09:25:22] [INFO] Processing period: Working Day 3 - 2025-11-18 (2025-11-18 to 2025-11-18)
+[09:25:22] [INFO]   Found appointment: 'Analysis of Risk Assessment for 2-Stroke Development Environment ' | Start: 2025-11-18 12:30 | Duration: 0.5 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:22] [INCL]     -> INCLUDED in time estimate
+[09:25:22] [INFO] Summary for Working Day 3 - 2025-11-18 - Total: 0.5 hours | Included: 1 appointments | Excluded: 0
+[09:25:22] [INFO] 
+[09:25:22] [INFO] Processing period: Working Day 4 - 2025-11-19 (2025-11-19 to 2025-11-19)
+[09:25:22] [INFO]   Found appointment: 'Declined: Workshop "Virtual Sensors"' | Start: 2025-11-19 09:00 | Duration: 6 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=3, ResponseStatus=4, AllDayEvent=False
+[09:25:22] [SKIP]     -> EXCLUDED: Meeting declined
+[09:25:22] [INFO]   Found appointment: 'Dinner after A2S Workshop ' | Start: 2025-11-19 18:00 | Duration: 2 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:22] [INCL]     -> INCLUDED in time estimate
+[09:25:22] [INFO]   Found appointment: 'A2S Roadmap Planning Workshop - Winter 2025' | Start: 2025-11-19 08:30 | Duration: 7.5 hours
+[09:25:22] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:22] [INCL]     -> INCLUDED in time estimate
+[09:25:23] [INFO]   Found appointment: 'Following: Kick-off meeting Convert NTP to python' | Start: 2025-11-19 11:05 | Duration: 0.92 hours
+[09:25:23] [INFO]     Properties: MeetingStatus=3, ResponseStatus=2, AllDayEvent=False
+[09:25:23] [INCL]     -> INCLUDED in time estimate
+[09:25:23] [INFO]   Found appointment: 'Workshop Virtual Sensors - Presentation Session' | Start: 2025-11-19 09:30 | Duration: 2.5 hours
+[09:25:23] [INFO]     Properties: MeetingStatus=3, ResponseStatus=5, AllDayEvent=False
+[09:25:23] [INCL]     -> INCLUDED in time estimate
+[09:25:23] [INFO] Summary for Working Day 4 - 2025-11-19 - Total: 12.92 hours | Included: 4 appointments | Excluded: 1
+[09:25:23] [INFO] 
+[09:25:23] [INFO] Processing period: Working Day 5 - 2025-11-20 (2025-11-20 to 2025-11-20)
+[09:25:23] [INFO]   Found appointment: 'A2S Roadmap Planning Workshop - Winter 2025' | Start: 2025-11-20 08:30 | Duration: 4 hours
+[09:25:23] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:23] [INCL]     -> INCLUDED in time estimate
+[09:25:23] [INFO]   Found appointment: 'ECT2 test in Japan follow-up [Tools]' | Start: 2025-11-20 13:30 | Duration: 0.5 hours
+[09:25:23] [INFO]     Properties: MeetingStatus=3, ResponseStatus=3, AllDayEvent=False
+[09:25:23] [INCL]     -> INCLUDED in time estimate
+[09:25:23] [INFO] Summary for Working Day 5 - 2025-11-20 - Total: 4.5 hours | Included: 2 appointments | Excluded: 0
+[09:25:23] [INFO] 
+[09:25:23] [INFO] Loaded 4 ignored full-hour appointment(s)
+[09:25:23] [INFO] 
+[09:25:23] [INFO] =========================================
+[09:25:23] [INFO] SCANNING FOR FULL-HOUR MEETINGS
+[09:25:23] [INFO] =========================================
+[09:25:23] [INFO] 
+[09:25:23] [INFO] Scanning for full-hour meetings (starting at :00) in the next 14 days
+[09:25:23] [INFO]   Loaded 4 previously ignored appointment(s)
+[09:25:23] [INFO]   Skipped previously ignored meeting: 'Dinner after A2S Workshop ' | Start: 2025-11-19 18:00
+[09:25:23] [INFO]   Skipped previously ignored meeting: 'ECT2 test in Japan follow-up' | Start: 2025-11-14 10:00
+[09:25:23] [INFO]   Skipped previously ignored meeting: 'Reminder: send slides + presenter info of department roadmap for A2S ' | Start: 2025-11-17 10:00
+[09:25:24] [INFO]   Skipped previously ignored meeting: 'Placeholder: Alignment project deliveries and plan' | Start: 2025-11-21 13:00
+[09:25:24] [INFO] Full-hour meeting scan complete: Found 0 meetings
+[09:25:24] [INFO]   Skipped: 3 (ignored pattern), 0 (all-day), 1 (private), 0 (OOO), 0 (already started), 0 (cancelled), 2 (declined), 4 (previously ignored)
+[09:25:24] [INFO] 
+[09:25:24] [INFO] =========================================
+[09:25:24] [INFO] EXECUTION SUMMARY
+[09:25:24] [INFO] =========================================
+[09:25:24] [INFO] Today: 2.09 hours (3 meetings)
+[09:25:24] [INFO] Next Working Day (2025-11-17): 1.08 hours (2 meetings)
+[09:25:24] [INFO] This Week: 2.09 hours (3 meetings)
+[09:25:24] [INFO] Next Week: 22.83 hours (12 meetings)
+[09:25:24] [INFO] Full-hour meetings found: 0
+[09:25:24] [INFO] 
+[09:25:24] [INFO] Script execution completed successfully
+[09:25:24] [INFO] =========================================
+[09:25:24] [INFO] 

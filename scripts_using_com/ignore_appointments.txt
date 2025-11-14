@@ -7,3 +7,7 @@
 # .*\[IGNORE\].*
 
 # Add your patterns below:
+^Lunch.*
+^Working from home.*
+^Blocker for UI\/UX Course.*
+^Syg.*
