@@ -1,0 +1,13 @@
+# Regex patterns for appointments to ignore (one per line)
+# Lines starting with # are comments
+# Examples:
+# ^Lunch$
+# ^Break$
+# ^Personal.*
+# .*\[IGNORE\].*
+
+# Add your patterns below:
+^Lunch.*
+^Working from home.*
+^Blocker for UI\/UX Course.*
+^Syg.*

@@ -1,0 +1,26 @@
+# Microsoft Graph Outlook Automation - Python Dependencies
+#
+# Install with: pip install -r requirements.txt
+#
+# Recommended: Use a virtual environment
+#   python -m venv venv
+#   venv\Scripts\activate    (Windows)
+#   source venv/bin/activate (macOS/Linux)
+#   pip install -r requirements.txt
+
+# Microsoft Authentication Library (MSAL) - for Azure AD authentication
+msal>=1.24.0
+
+# HTTP client library
+requests>=2.31.0
+
+# Timezone support for Python < 3.9
+backports.zoneinfo>=0.2.1; python_version < '3.9'
+
+# Testing dependencies (optional - only needed for running tests)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+
+# Note: tkinter is included with Python standard library (no need to install)
+# Note: pathlib, datetime, json, logging, re are all part of Python standard library

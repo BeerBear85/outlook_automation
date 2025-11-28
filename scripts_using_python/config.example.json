@@ -1,0 +1,22 @@
+{
+  "_comment": "Microsoft Graph Outlook Automation - Configuration File",
+  "_instructions": [
+    "1. Copy this file to config.json",
+    "2. Replace YOUR_CLIENT_ID with your Azure AD application client ID",
+    "3. Optionally adjust tenant_id, scopes, and timezone",
+    "4. Do NOT commit config.json to version control (add to .gitignore)"
+  ],
+
+  "tenant_id": "common",
+  "client_id": "YOUR_CLIENT_ID",
+
+  "scopes": [
+    "Calendars.ReadWrite",
+    "Mail.ReadWrite",
+    "User.Read"
+  ],
+
+  "timezone": "Europe/Copenhagen",
+
+  "_timezone_note": "Use IANA timezone format (e.g., 'Europe/Copenhagen', 'America/New_York', 'UTC')"
+}

@@ -1,6 +1,53 @@
 # Outlook Meeting Hour Summary
 
-PowerShell script that displays meeting hour summaries from your Outlook calendar with a visual bar chart, and helps optimize meeting schedules by suggesting time shifts for full-hour meetings.
+Scripts that display meeting hour summaries from your Outlook calendar with a visual bar chart, and help optimize meeting schedules by suggesting time shifts for full-hour meetings.
+
+## Three Implementations Available
+
+This repository contains **three parallel implementations** of the same core functionality:
+
+### 1. Python + Microsoft Graph (Newest)
+**Location:** `scripts_using_python/`
+
+- ✅ **Works with new Outlook** (Outlook for Windows)
+- ✅ Works with classic Outlook
+- ✅ Cloud-based (no local Outlook installation required)
+- ✅ **Cross-platform** (Windows, macOS, Linux)
+- ✅ Modern Python implementation with full test coverage
+- 📖 See [scripts_using_python/README.md](scripts_using_python/README.md) for detailed documentation
+
+**Use this if:** You prefer Python, need cross-platform support, or want the most modern implementation.
+
+### 2. PowerShell + Microsoft Graph (Recommended for Windows)
+**Location:** `scripts_using_graph/`
+
+- ✅ **Works with new Outlook** (Outlook for Windows)
+- ✅ Works with classic Outlook
+- ✅ Cloud-based (no local Outlook installation required)
+- ✅ Future-proof solution
+- ✅ Native PowerShell experience
+- 📖 See [scripts_using_graph/README.md](scripts_using_graph/README.md) for detailed documentation
+
+**Use this if:** You prefer PowerShell and have new Outlook, or want a modern, cloud-first solution.
+
+### 3. COM-based Implementation (Legacy)
+**Location:** `scripts_using_com/`
+
+- ⚠️ **Does NOT work with new Outlook**
+- ✅ Works with classic Outlook only
+- ✅ Faster (uses local Outlook cache)
+- ✅ Works offline
+- 📖 Documentation below applies to this implementation
+
+**Use this if:** You have classic Outlook and don't plan to migrate to new Outlook.
+
+---
+
+**This README documents the COM-based implementation.**
+- For PowerShell Graph implementation, see [scripts_using_graph/README.md](scripts_using_graph/README.md)
+- For Python Graph implementation, see [scripts_using_python/README.md](scripts_using_python/README.md)
+
+---
 
 ## Features
 
@@ -44,7 +91,7 @@ PowerShell script that displays meeting hour summaries from your Outlook calenda
 
 ### Running the Script
 
-Navigate to the `scripts` directory and run:
+Navigate to the `scripts_using_com` directory and run:
 
 ```powershell
 .\Show-MeetingHourSummary.ps1
@@ -53,7 +100,7 @@ Navigate to the `scripts` directory and run:
 Or from the repository root:
 
 ```powershell
-.\scripts\Show-MeetingHourSummary.ps1
+.\scripts_using_com\Show-MeetingHourSummary.ps1
 ```
 
 ### What Happens When You Run the Script
@@ -78,7 +125,7 @@ Or from the repository root:
 
 ### Ignore Patterns (ignore_appointments.txt)
 
-Create `scripts/ignore_appointments.txt` to exclude certain appointments from calculations:
+Create `scripts_using_com/ignore_appointments.txt` to exclude certain appointments from calculations:
 
 ```text
 # This file contains regex patterns for appointments to ignore
@@ -104,7 +151,7 @@ Create `scripts/ignore_appointments.txt` to exclude certain appointments from ca
 
 ### Email Template (meeting_change_request_template.txt)
 
-Customize the draft email template in `scripts/meeting_change_request_template.txt`:
+Customize the draft email template in `scripts_using_com/meeting_change_request_template.txt`:
 
 ```text
 Subject: Request to shift meeting start time to :05
@@ -137,7 +184,7 @@ The project includes comprehensive Pester tests for all functions.
 
 ### Running Tests
 
-From the `scripts` directory:
+From the `scripts_using_com` directory:
 
 ```powershell
 # Install Pester if not already installed
@@ -193,8 +240,8 @@ Invoke-Pester -Path .\Show-MeetingHourSummary.Tests.ps1
 
 ```
 outlook_automation/
-├── README.md                                    # This file
-├── scripts/
+├── README.md                                    # This file (overview of all implementations)
+├── scripts_using_com/                           # COM-based implementation (legacy)
 │   ├── Show-MeetingHourSummary.ps1             # Main script
 │   ├── Show-MeetingHourSummary.Tests.ps1       # Pester tests
 │   ├── Run-Tests.ps1                            # Test runner
@@ -203,6 +250,41 @@ outlook_automation/
 │   ├── ignored_full_hour_appointments.txt       # Never Ask Again list (auto-generated)
 │   ├── meeting_change_request_template.txt      # Email template (customizable)
 │   └── log.txt                                  # Execution log (auto-generated)
+├── scripts_using_graph/                         # PowerShell Graph implementation
+│   ├── README.md                                # Graph PowerShell documentation
+│   ├── Connect-Graph.ps1                        # Authentication script
+│   ├── Show-MeetingHourSummary.ps1             # Main script (Graph version)
+│   ├── Test-GraphConnection.ps1                 # Connection validation
+│   ├── OutlookGraphAutomation.psm1             # Shared module
+│   └── config/                                  # Configuration files
+│       ├── ignore_appointments.txt
+│       ├── meeting_change_request_template.txt
+│       └── ignored_full_hour_appointments.txt
+├── scripts_using_python/                        # Python Graph implementation (newest)
+│   ├── README.md                                # Python implementation documentation
+│   ├── requirements.txt                         # Python dependencies
+│   ├── pytest.ini                               # Test configuration
+│   ├── run_tests.py                             # Test runner
+│   ├── config.example.json                      # Example configuration
+│   ├── .env.example                             # Example environment variables
+│   ├── src/outlook_graph/                       # Python package
+│   │   ├── auth.py                              # Authentication (MSAL)
+│   │   ├── config.py                            # Configuration management
+│   │   ├── calendar.py                          # Calendar operations
+│   │   ├── mail.py                              # Mail operations
+│   │   └── utils.py                             # Utility functions
+│   ├── scripts/                                 # Entry point scripts
+│   │   ├── connect_graph.py                     # Authentication
+│   │   ├── test_connection.py                   # Connection testing
+│   │   └── show_meeting_summary.py              # Main script
+│   ├── tests/                                   # Automated tests (62 tests)
+│   │   ├── test_utils.py                        # Unit tests
+│   │   ├── test_config.py                       # Config tests
+│   │   └── test_integration.py                  # Integration tests
+│   └── config/                                  # Configuration files
+│       ├── ignore_appointments.txt
+│       ├── meeting_change_request_template.txt
+│       └── ignored_full_hour_appointments.txt
 └── example/
     └── update_calendar_busytype.ps1             # Other utilities
 ```
