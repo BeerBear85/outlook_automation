@@ -159,7 +159,7 @@ function Get-ConfigDirectory {
     return Join-Path $moduleDir "config"
 }
 
-function Load-IgnorePatterns {
+function Import-IgnorePatterns {
     <#
     .SYNOPSIS
         Loads regex patterns from ignore_appointments.txt file.
@@ -186,7 +186,7 @@ function Load-IgnorePatterns {
     return $patterns
 }
 
-function Load-EmailTemplate {
+function Import-EmailTemplate {
     <#
     .SYNOPSIS
         Loads email template from meeting_change_request_template.txt file.
@@ -224,7 +224,7 @@ Best regards
     }
 }
 
-function Load-IgnoredFullHourAppointments {
+function Import-IgnoredFullHourAppointments {
     <#
     .SYNOPSIS
         Loads appointment identifiers from ignored_full_hour_appointments.txt file.
@@ -357,6 +357,7 @@ function Write-Log {
         [Parameter(Mandatory=$true)]
         [string]$LogFile,
         [Parameter(Mandatory=$true)]
+        [AllowEmptyString()]
         [string]$Message,
         [string]$Level = "INFO"
     )
@@ -420,6 +421,10 @@ function Get-GraphCalendarEvents {
     }
 
     try {
+        # Get the authenticated user from context
+        $context = Get-MgContext
+        $userId = $context.Account
+
         # Format dates for Graph API (ISO 8601)
         $startDateTime = $StartDate.ToString("yyyy-MM-ddTHH:mm:ss")
         $endDateTime = $EndDate.ToString("yyyy-MM-ddTHH:mm:ss")
@@ -429,7 +434,7 @@ function Get-GraphCalendarEvents {
         }
 
         # Get calendar view with all events in the date range
-        $events = Get-MgUserCalendarView -UserId "me" `
+        $events = Get-MgUserCalendarView -UserId $userId `
             -StartDateTime $startDateTime `
             -EndDateTime $endDateTime `
             -All `
@@ -495,8 +500,12 @@ function New-GraphDraftEmail {
             )
         }
 
+        # Get the authenticated user from context
+        $context = Get-MgContext
+        $userId = $context.Account
+
         # Create draft (Save parameter means don't send)
-        $draft = New-MgUserMessage -UserId "me" -BodyParameter $messageBody -ErrorAction Stop
+        $draft = New-MgUserMessage -UserId $userId -BodyParameter $messageBody -ErrorAction Stop
 
         if ($LogFile) {
             Write-Log -LogFile $LogFile -Message "Draft email created successfully (ID: $($draft.Id))"
@@ -550,9 +559,9 @@ Export-ModuleMember -Function @(
     'Get-NextWorkingDay',
     'Get-AppointmentDuration',
     'ConvertTo-LocalDateTime',
-    'Load-IgnorePatterns',
-    'Load-EmailTemplate',
-    'Load-IgnoredFullHourAppointments',
+    'Import-IgnorePatterns',
+    'Import-EmailTemplate',
+    'Import-IgnoredFullHourAppointments',
     'Save-IgnoredFullHourAppointment',
     'Test-ShouldIgnoreAppointment',
     'Initialize-LogFile',

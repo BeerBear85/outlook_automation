@@ -97,8 +97,8 @@ try {
     # Connect with interactive authentication
     Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
 
-    # Select v1.0 profile (stable API)
-    Select-MgProfile -Name "v1.0" -ErrorAction Stop
+    # Note: Select-MgProfile is deprecated in Microsoft.Graph v2.0+
+    # The module now uses v1.0 API by default (use .Beta cmdlets for beta API)
 
     Write-Host "  Successfully connected!" -ForegroundColor Green
     Write-Host ""
@@ -130,17 +130,40 @@ try {
     Write-Host "  Scopes:      $($context.Scopes -join ', ')" -ForegroundColor White
     Write-Host ""
 
-    # Try to get current user info as a connectivity test
-    Write-Host "Testing calendar access..." -ForegroundColor Yellow
-    $user = Get-MgUser -UserId "me" -Property DisplayName,UserPrincipalName -ErrorAction Stop
-    Write-Host "  Signed in as: $($user.DisplayName) ($($user.UserPrincipalName))" -ForegroundColor Green
+    # Get user info from context (doesn't require API call)
+    Write-Host "  Signed in as: $($context.Account)" -ForegroundColor Green
     Write-Host ""
 
-    Write-Host "SUCCESS: Ready to run Graph-based automation scripts!" -ForegroundColor Green
+    # Try to test calendar access (the actual permission we need)
+    Write-Host "Testing calendar access..." -ForegroundColor Yellow
+    try {
+        # Try to get calendar events as a real connectivity test
+        $null = Get-MgUserCalendarView -UserId $context.Account -StartDateTime (Get-Date).ToString("yyyy-MM-ddT00:00:00") -EndDateTime (Get-Date).AddDays(1).ToString("yyyy-MM-ddT23:59:59") -Top 1 -ErrorAction Stop
+        Write-Host "  Calendar access confirmed!" -ForegroundColor Green
+    }
+    catch {
+        # If calendar access fails, try user profile as fallback
+        Write-Host "  Warning: Could not verify calendar access directly" -ForegroundColor Yellow
+        try {
+            $user = Get-MgUser -UserId $context.Account -Property DisplayName,UserPrincipalName -ErrorAction Stop
+            Write-Host "  User profile access confirmed for: $($user.DisplayName)" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "  Warning: Could not verify user profile access" -ForegroundColor Yellow
+            Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Gray
+            Write-Host "  You may need to re-consent permissions in your browser." -ForegroundColor Yellow
+        }
+    }
+    Write-Host ""
+
+    Write-Host "SUCCESS: Connected to Microsoft Graph!" -ForegroundColor Green
     Write-Host ""
     Write-Host "You can now run:" -ForegroundColor Cyan
     Write-Host "  .\Show-MeetingHourSummary.ps1" -ForegroundColor White
     Write-Host "  .\Test-GraphConnection.ps1" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Note: If you see warnings above, the scripts may still work." -ForegroundColor Gray
+    Write-Host "      Try running a script and see if it succeeds." -ForegroundColor Gray
     Write-Host ""
 }
 catch {

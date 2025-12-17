@@ -525,7 +525,7 @@ Write-Log -LogFile $logFile -Message "Script directory: $scriptDir"
 Write-Log -LogFile $logFile -Message "Using Microsoft Graph PowerShell SDK"
 
 # Load ignore patterns
-$ignorePatterns = Load-IgnorePatterns
+$ignorePatterns = Import-IgnorePatterns
 Write-Log -LogFile $logFile -Message "Loaded $($ignorePatterns.Count) ignore patterns from config/ignore_appointments.txt"
 if ($ignorePatterns.Count -gt 0) {
     foreach ($pattern in $ignorePatterns) {
@@ -603,10 +603,10 @@ $dailyHours = Get-DailyMeetingHours -Events $events -StartDate $today -WorkingDa
 # -----------------------------------------------------------------------------
 
 # Load email template
-$emailTemplate = Load-EmailTemplate
+$emailTemplate = Import-EmailTemplate
 
 # Load ignored appointments list
-$ignoredAppointmentIds = Load-IgnoredFullHourAppointments
+$ignoredAppointmentIds = Import-IgnoredFullHourAppointments
 Write-Log -LogFile $logFile -Message "Loaded $($ignoredAppointmentIds.Count) ignored full-hour appointment(s)"
 Write-Log -LogFile $logFile -Message ""
 
