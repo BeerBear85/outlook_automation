@@ -11,3 +11,6 @@
 ^Working from home.*
 ^Blocker for UI\/UX Course.*
 ^Syg.*
+^Sygemeldt.*
+Barn syg.*
+ME weekly coordination with LDC-IN.*
